@@ -1,0 +1,45 @@
+{
+  "compilerOptions": {
+    "types": [
+      "vitest/globals"
+    ],
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": [
+      "ES2020",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "strict": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noImplicitAny": false,
+    "noFallthroughCasesInSwitch": false,
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ],
+      "@/modules/*": [
+        "./src/pages/*"
+      ]
+    }
+  },
+  "include": [
+    "src",
+    "src/pages/AIInsights.tsx",
+    "src/pages/Dashboard.tsx",
+    "src/pages/ChangePassword.tsx",
+    "src/pages/Reports.tsx",
+    "src/pages/Index.tsx",
+    "src/pages/Login.tsx",
+    "src/pages/NotFound.tsx"
+  ]
+}
