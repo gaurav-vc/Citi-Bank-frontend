@@ -38,6 +38,7 @@ export interface StockTransfer {
   status: string;
   approved_by?: string;
   transfer_date?: string;
+  reason?: string;
 }
 
 export interface MaterialIssue {

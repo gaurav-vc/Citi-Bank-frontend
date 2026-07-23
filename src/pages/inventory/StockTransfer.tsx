@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Textarea } from '@/components/ui/textarea';
 import { 
-  Truck, ArrowLeftRight, Clock, CheckCircle, Search, Filter, Plus, FileText, CheckCircle2, TrendingUp, AlertTriangle, Play, Calendar
+  Truck, ArrowLeftRight, Clock, CheckCircle, Search, Filter, Plus, FileText, CheckCircle2, TrendingUp, AlertTriangle, Play, Calendar, Building2, ArrowRight
 } from 'lucide-react';
 import { inventoryAPI } from '@/api/inventory';
 
@@ -25,6 +25,7 @@ interface StockTransfer {
   status: 'pending' | 'approved' | 'in_transit' | 'received' | 'cancelled';
   approvedBy?: string;
   transferDate?: string;
+  reason?: string;
 }
 
 interface TransferItem {
