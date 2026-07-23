@@ -314,7 +314,7 @@ export default function PurchaseOrders() {
 
         {/* Stats */}
         <div className="grid gap-4 md:grid-cols-4">
-          <Card>
+          <Card className="cursor-pointer transition-colors hover:bg-muted/50" onClick={() => setStatusFilter('all')}>
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -325,7 +325,7 @@ export default function PurchaseOrders() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="cursor-pointer transition-colors hover:bg-muted/50" onClick={() => setStatusFilter('in_progress')}>
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -336,7 +336,7 @@ export default function PurchaseOrders() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="cursor-pointer transition-colors hover:bg-muted/50" onClick={() => setStatusFilter('completed')}>
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -347,7 +347,7 @@ export default function PurchaseOrders() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="cursor-pointer transition-colors hover:bg-muted/50" onClick={() => setStatusFilter('all')}>
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>

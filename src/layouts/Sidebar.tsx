@@ -680,13 +680,7 @@ export function Sidebar() {
 
       {/* Footer */}
       <div className="p-4 border-t border-sidebar-border space-y-2">
-        <button className="nav-item w-full">
-          <Bell className="h-5 w-5" />
-          <span>Notifications</span>
-          <span className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-sidebar-primary text-xs text-sidebar-primary-foreground">
-            3
-          </span>
-        </button>
+
         <button onClick={logout} className="nav-item w-full text-destructive hover:text-destructive">
           <LogOut className="h-5 w-5" />
           <span>Logout</span>

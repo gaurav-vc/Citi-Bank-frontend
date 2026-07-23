@@ -112,10 +112,10 @@ export default function Login() {
         <div className="absolute bottom-0 right-0 translate-x-1/3 translate-y-1/3 w-[1100px] h-[1100px] rounded-full bg-[#001030]/[0.05] z-0 pointer-events-none" />
 
         {/* Skyline Silhouette at the bottom */}
-        <svg 
-          className="absolute bottom-0 left-0 right-0 w-full h-48 text-[#00183F] fill-current opacity-80 z-0 pointer-events-none" 
-          viewBox="0 0 1000 200" 
-          preserveAspectRatio="none" 
+        <svg
+          className="absolute bottom-0 left-0 right-0 w-full h-48 text-[#00183F] fill-current opacity-80 z-0 pointer-events-none"
+          viewBox="0 0 1000 200"
+          preserveAspectRatio="none"
           xmlns="http://www.w3.org/2000/svg"
         >
           <path d="M0,200 L0,150 L20,150 L20,110 L40,110 L40,165 L60,165 L60,100 L80,100 L80,170 L100,170 L100,85 L120,85 L120,65 L130,65 L130,85 L140,85 L140,175 L160,175 L160,125 L180,125 L180,95 L200,95 L200,155 L220,155 L220,75 L240,75 L240,55 L250,55 L250,75 L260,75 L260,165 L280,165 L280,115 L300,115 L300,85 L320,85 L320,145 L340,145 L340,105 L360,105 L360,55 L380,55 L380,175 L400,175 L400,125 L420,125 L420,95 L440,95 L440,155 L460,155 L460,65 L480,65 L480,45 L490,45 L490,65 L500,65 L500,165 L520,165 L520,105 L540,105 L540,75 L560,75 L560,135 L580,135 L580,95 L600,95 L600,175 L620,175 L620,115 L640,115 L640,85 L660,85 L660,155 L680,155 L680,65 L700,65 L700,35 L710,35 L710,65 L720,65 L720,165 L740,165 L740,105 L760,105 L760,75 L780,75 L780,145 L800,145 L800,85 L820,85 L820,55 L830,55 L830,85 L840,85 L840,175 L860,175 L860,125 L880,125 L880,95 L900,95 L900,155 L920,155 L920,75 L940,75 L940,165 L960,165 L960,115 L980,115 L980,190 L1000,190 L1000,200 Z" />
@@ -123,24 +123,24 @@ export default function Login() {
 
         {/* Center Content Wrapper - Strict Flexbox Alignment */}
         <div className="relative z-10 flex flex-col items-center justify-center text-center text-white w-full max-w-lg mx-auto gap-6 m-0 p-0">
-          
+
           <div className="flex flex-col items-center justify-center gap-2">
             <h1 className="text-[38px] font-extrabold font-sans leading-none m-0 p-0 text-center w-full">
-              FIFC
+              First International Financial Center
             </h1>
           </div>
-          
+
           {/* Fading gradient horizontal line */}
           <div className="w-[300px] h-[1px] bg-gradient-to-r from-transparent via-white/40 to-transparent mx-auto" />
-          
-          
+
+
           <h2 className="text-[18px] font-bold text-white font-sans leading-none m-0 p-0 text-center w-full">
             Procurement & Facility Operational Tool
           </h2>
-          
+
           {/* Solid short horizontal line */}
           <div className="w-12 h-[1px] bg-white/40 mx-auto" />
-          
+
           <p className="text-[14px] text-white/90 leading-relaxed max-w-sm font-sans m-0 p-0 text-center w-full">
             Manage procurement, vendors,<br />inventory and approvals.
           </p>
@@ -165,7 +165,7 @@ export default function Login() {
               <h2 className="text-3xl font-extrabold text-[#0D1B2A] tracking-tight">Update Password</h2>
               <p className="text-sm text-slate-500 font-medium">A password change is required on your first login.</p>
             </div>
-            
+
             <form onSubmit={handleChangePassword} className="space-y-5">
               <div className="space-y-2">
                 <Label htmlFor="newPassword" className="font-bold text-[11px] text-slate-500 uppercase tracking-widest block mb-1.5">NEW PASSWORD</Label>
@@ -202,7 +202,7 @@ export default function Login() {
               <Button type="submit" className="w-full h-[48px] font-bold text-[15px] bg-[#002D62] hover:bg-[#001D3D] text-white transition-colors mt-4 rounded-lg shadow-sm" disabled={isChangingPassword}>
                 {isChangingPassword ? 'Updating...' : 'Change Password'}
               </Button>
-              
+
               <Button type="button" variant="ghost" className="w-full h-[48px] font-semibold text-sm mt-1 text-slate-500 hover:text-slate-800 rounded-lg" onClick={logout}>
                 Cancel & Sign Out
               </Button>
@@ -215,7 +215,7 @@ export default function Login() {
               <h2 className="text-[28px] font-extrabold text-[#0F172A] tracking-tight">Welcome back</h2>
               <p className="text-[14px] text-slate-500 font-medium">Sign in to your account to continue</p>
             </div>
-            
+
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-2">
                 <Label htmlFor="email" className="font-bold text-[11px] text-slate-500 uppercase tracking-widest block mb-1.5">EMAIL</Label>
@@ -246,8 +246,8 @@ export default function Login() {
                     className="pl-11 pr-10 font-medium text-[14px] h-[48px] bg-[#F0F4F8] border-slate-200 focus-visible:ring-[#003366] rounded-lg text-slate-800 placeholder:text-slate-400"
                     required
                   />
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
                   >

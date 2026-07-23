@@ -11,9 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Textarea } from '@/components/ui/textarea';
 import { 
-  Plus, Search, ArrowRight, Building2, CheckCircle, Clock, Package,
-  Truck, ArrowLeftRight
+  Truck, ArrowLeftRight, Clock, CheckCircle, Search, Filter, Plus, FileText, CheckCircle2, TrendingUp, AlertTriangle, Play, Calendar
 } from 'lucide-react';
+import { inventoryAPI } from '@/api/inventory';
 
 interface StockTransfer {
   id: string;
@@ -64,6 +64,7 @@ const mapStockTransfer = (t: any): StockTransfer => ({
 export default function StockTransfer() {
   const [transfers, setTransfers] = useState<StockTransfer[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
   useEffect(() => {
@@ -72,15 +73,8 @@ export default function StockTransfer() {
 
   const fetchTransfers = async () => {
     try {
-      const token = localStorage.getItem('campusspend_token');
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/transfers/`, {
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-      });
-      if (res.ok) {
-        const raw = await res.json();
-        const data = Array.isArray(raw) ? raw : (raw.results ?? []);
-        setTransfers(data.map(mapStockTransfer));
-      }
+      const data = await inventoryAPI.getTransfers();
+      setTransfers(data.map(mapStockTransfer));
     } catch (err) {
       console.error('Error fetching stock transfers:', err);
     }
@@ -88,42 +82,26 @@ export default function StockTransfer() {
 
   const handleUpdateStatus = async (id: string, status: string) => {
     try {
-      const token = localStorage.getItem('campusspend_token');
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/transfers/${id}/`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
-        body: JSON.stringify({
-          status,
-          approved_by: 'Vikram Singh',
-          transfer_date: status === 'received' ? new Date().toISOString().split('T')[0] : undefined
-        })
+      await inventoryAPI.updateTransfer(id, {
+        status,
+        approved_by: 'Vikram Singh',
+        transfer_date: status === 'in_transit' ? new Date().toISOString().split('T')[0] : undefined
       });
-      if (res.ok) {
-        toast({
-          title: 'Status Updated',
-          description: `Transfer request ${status} successfully.`,
-        });
-        fetchTransfers();
-      } else {
-        throw new Error('Failed to update status');
-      }
-    } catch (err: any) {
-      toast({
-        title: 'Error',
-        description: err.message,
-        variant: 'destructive',
-      });
+      toast({ title: 'Success', description: `Transfer status updated to ${status.replace('_', ' ')}` });
+      fetchTransfers();
+    } catch (err) {
+      console.error(err);
+      toast({ title: 'Error', description: 'Error updating transfer status', variant: 'destructive' });
     }
   };
 
-  const filteredTransfers = transfers.filter(transfer => 
-    transfer.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    transfer.fromLocation.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    transfer.toLocation.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredTransfers = transfers.filter(transfer => {
+    const matchesSearch = transfer.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          transfer.fromLocation.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          transfer.toLocation.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || transfer.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
   const stats = {
     total: transfers.length,
@@ -160,7 +138,7 @@ export default function StockTransfer() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
+          <Card className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setStatusFilter('all')}>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-lg bg-primary/10">
@@ -173,7 +151,7 @@ export default function StockTransfer() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setStatusFilter('pending')}>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-lg bg-warning/10">
@@ -186,7 +164,7 @@ export default function StockTransfer() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setStatusFilter('in_transit')}>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-lg bg-accent/10">
@@ -199,7 +177,7 @@ export default function StockTransfer() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setStatusFilter('received')}>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-lg bg-success/10">
@@ -341,20 +319,13 @@ function CreateTransferForm({ onClose, onSuccess }: { onClose: () => void; onSuc
   useEffect(() => {
     const fetchCatalog = async () => {
       try {
-        const token = localStorage.getItem('campusspend_token');
-        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/items/`, {
-          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-        });
-        if (res.ok) {
-          const raw = await res.json();
-          const list = Array.isArray(raw) ? raw : (raw.results ?? []);
-          setItemsList(list.map((i: any) => ({
-            id: i.id,
-            name: i.name,
-            uom: i.uom,
-            currentStock: i.current_stock ?? 0,
-          })));
-        }
+        const items = await inventoryAPI.getItems();
+        setItemsList(items.map((i: any) => ({
+          id: i.id,
+          name: i.name,
+          uom: i.uom,
+          currentStock: i.current_stock ?? 0,
+        })));
       } catch (err) {
         console.error('Error fetching items catalog:', err);
       }
@@ -412,47 +383,26 @@ function CreateTransferForm({ onClose, onSuccess }: { onClose: () => void; onSuc
     }
 
     try {
-      const token = localStorage.getItem('campusspend_token');
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/transfers/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
-        body: JSON.stringify({
-          id: `TRF-${Date.now()}`,
-          from_location: fromLocation,
-          to_location: toLocation,
-          reason,
-          requested_by: 'Vikram Singh',
-          requested_date: new Date().toISOString().split('T')[0],
-          status: 'pending',
-          items: filteredItems.map(({ itemId, itemName, quantity, uom }) => ({
-            item_id: itemId,
-            item_name: itemName,
-            quantity,
-            uom
-          }))
-        })
+      await inventoryAPI.createTransfer({
+        id: `TRF-${Date.now()}`,
+        from_location: fromLocation,
+        to_location: toLocation,
+        reason,
+        requested_by: 'Vikram Singh',
+        requested_date: new Date().toISOString().split('T')[0],
+        status: 'pending',
+        items: filteredItems.map(({ itemId, itemName, quantity, uom }) => ({
+          item_id: itemId,
+          item_name: itemName,
+          quantity,
+          uom
+        }))
       });
-
-      if (res.ok) {
-        toast({
-          title: 'Success',
-          description: 'Transfer request submitted successfully',
-        });
-        onSuccess();
-        onClose();
-      } else {
-        const errData = await res.json();
-        throw new Error(errData.error || 'Failed to submit transfer request');
-      }
+      toast({ title: 'Success', description: 'Transfer request submitted successfully' });
+      onSuccess();
+      onClose();
     } catch (err: any) {
-      toast({
-        title: 'Error',
-        description: err.message,
-        variant: 'destructive',
-      });
+      toast({ title: 'Error', description: err.message || 'Failed to submit transfer request', variant: 'destructive' });
     }
   };
 

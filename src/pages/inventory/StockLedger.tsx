@@ -25,6 +25,7 @@ import { downloadFile } from '@/utils/downloadFile';
 import { useAuth } from '@/contexts/AuthContext';
 import { AddStockModal } from './AddStockModal';
 import { StockHistoryModal } from './StockHistoryModal';
+import { inventoryAPI } from '@/api/inventory';
 export default function StockLedger() {
   const { token, user } = useAuth();
   const [items, setItems] = useState<any[]>([]);
@@ -46,14 +47,8 @@ export default function StockLedger() {
 
   const fetchStock = async () => {
     try {
-      const token = localStorage.getItem('campusspend_token');
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/stock/`, {
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setItems(data);
-      }
+      const data = await inventoryAPI.getStockLedger();
+      setItems(data);
     } catch (err) {
       console.error('Error fetching stock:', err);
     }
@@ -67,7 +62,7 @@ export default function StockLedger() {
 
     try {
       await downloadFile(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/inventory/export/?format=xlsx`,
+        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/inventory/inventory/export/?format=xlsx`,
         `inventory_export_${Date.now()}.xlsx`,
         token || ''
       );
@@ -99,7 +94,7 @@ export default function StockLedger() {
 
     try {
       const token = localStorage.getItem('campusspend_token');
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/inventory/import/`, {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/inventory/inventory/import/`, {
         method: 'POST',
         headers: token ? { 'Authorization': `Bearer ${token}` } : {},
         body: formData,
@@ -211,7 +206,7 @@ export default function StockLedger() {
 
         {/* Stats */}
         <div className="grid gap-4 md:grid-cols-4">
-          <Card>
+          <Card className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setStockFilter('all')}>
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -222,7 +217,7 @@ export default function StockLedger() {
               </div>
             </CardContent>
           </Card>
-          <Card className="border-destructive/50">
+          <Card className="border-destructive/50 cursor-pointer hover:bg-destructive/10 transition-colors" onClick={() => setStockFilter('low')}>
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -233,7 +228,7 @@ export default function StockLedger() {
               </div>
             </CardContent>
           </Card>
-          <Card className="border-warning/50">
+          <Card className="border-warning/50 cursor-pointer hover:bg-warning/10 transition-colors" onClick={() => setStockFilter('reorder')}>
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -244,7 +239,7 @@ export default function StockLedger() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setStockFilter('adequate')}>
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>

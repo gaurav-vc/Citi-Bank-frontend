@@ -379,7 +379,7 @@ export default function TenderingRFQ() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
+          <Card className="cursor-pointer transition-colors hover:bg-muted/50" onClick={() => setStatusFilter('all')}>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-lg bg-primary/10">
@@ -392,7 +392,7 @@ export default function TenderingRFQ() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="cursor-pointer transition-colors hover:bg-muted/50" onClick={() => setStatusFilter('bidding')}>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-lg bg-yellow-500/10">
@@ -405,7 +405,7 @@ export default function TenderingRFQ() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="cursor-pointer transition-colors hover:bg-muted/50" onClick={() => setStatusFilter('awarded')}>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-lg bg-emerald-500/10">
@@ -418,7 +418,7 @@ export default function TenderingRFQ() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="cursor-pointer transition-colors hover:bg-muted/50" onClick={() => setStatusFilter('all')}>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-lg bg-blue-500/10">
@@ -426,7 +426,7 @@ export default function TenderingRFQ() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Total Value</p>
-                  <p className="text-2xl font-bold">₹{(stats.totalValue / 100000).toFixed(0)}L</p>
+                  <p className="text-2xl font-bold">₹{(stats.totalValue / 1000000).toFixed(2)}M</p>
                 </div>
               </div>
             </CardContent>

@@ -18,6 +18,7 @@ import {
 import { downloadFile } from '@/utils/downloadFile';
 import { useAuth } from '@/contexts/AuthContext';
 import { useParams, useNavigate } from 'react-router-dom';
+import { inventoryAPI } from '@/api/inventory';
 
 interface GRN {
   id: string;
@@ -77,26 +78,19 @@ export default function GRNEntry() {
   const fetchGrns = async () => {
     setIsLoading(true);
     try {
-      const token = localStorage.getItem('campusspend_token');
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/grns/`, {
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-      });
-      if (res.ok) {
-        const raw = await res.json();
-        const data = Array.isArray(raw) ? raw : (raw.results ?? []);
-        const mapped = data.map((g: any) => ({
-          id: g.id,
-          poId: g.po_id,
-          vendor: g.vendor_name ?? g.vendor ?? '',
-          receivedDate: g.received_date,
-          items: g.items ?? [],
-          status: g.status,
-          receivedBy: g.received_by,
-          invoiceNumber: g.invoice_number,
-          remarks: g.remarks,
-        }));
-        setGrns(mapped);
-      }
+      const data = await inventoryAPI.getGRNs();
+      const mapped = data.map((g: any) => ({
+        id: g.id,
+        poId: g.po_id || g.poId,
+        vendor: g.vendor_name ?? g.vendor ?? '',
+        receivedDate: g.received_date || g.receivedDate,
+        items: g.items ?? [],
+        status: g.status,
+        receivedBy: g.received_by || g.receivedBy,
+        invoiceNumber: g.invoice_number || g.invoiceNumber,
+        remarks: g.remarks,
+      }));
+      setGrns(mapped);
     } catch (err) {
       console.error('Error fetching GRNs:', err);
     } finally {
@@ -128,7 +122,7 @@ export default function GRNEntry() {
 
     try {
       await downloadFile(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/grns/export/?format=xlsx`,
+        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/inventory/grns/export/?format=xlsx`,
         `grns_export_${Date.now()}.xlsx`,
         token || ''
       );
@@ -196,7 +190,7 @@ export default function GRNEntry() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
+          <Card className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setStatusFilter('all')}>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-lg bg-primary/10">
@@ -209,7 +203,7 @@ export default function GRNEntry() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setStatusFilter('pending')}>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-lg bg-warning/10">
@@ -222,7 +216,7 @@ export default function GRNEntry() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setStatusFilter('accepted')}>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-lg bg-success/10">
@@ -235,7 +229,7 @@ export default function GRNEntry() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setStatusFilter('rejected')}>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-lg bg-destructive/10">
@@ -306,38 +300,26 @@ function GRNTable({ grns, onActionComplete, onViewDetails }: { grns: GRN[], onAc
   const [inventoryDecision, setInventoryDecision] = useState<'surplus' | 'site'>('surplus');
   const [partialItems, setPartialItems] = useState<Array<{itemId: string, itemName?: string, acceptedQty: number, rejectedQty: number}>>([]);
 
-  const handleAction = async (grnId: string, actionType: string) => {
+  const handleProcessGRN = async (action: 'accept' | 'reject' | 'partial_accept', payload: any = {}) => {
     try {
-      const token = localStorage.getItem('campusspend_token');
-      const payload: any = { action: actionType, inventory_decision: inventoryDecision };
-      if (actionType === 'partial_accept') {
+      if (action === 'partial_accept' && !payload.items) {
         payload.items = partialItems.map(p => ({
           itemId: p.itemId,
-          itemName: p.itemName,
           acceptedQty: p.acceptedQty,
           rejectedQty: p.rejectedQty
         }));
       }
-      
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/grns/${grnId}/action/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
-        body: JSON.stringify(payload)
+
+      await inventoryAPI.processGRNAction(actioningGrn?.id || '', {
+        action,
+        inventory_decision: inventoryDecision,
+        ...payload
       });
-      
-      if (res.ok) {
-        toast({ title: 'Success', description: `GRN ${actionType.replace('_', ' ')}ed successfully` });
-        if (onActionComplete) onActionComplete();
-        setActioningGrn(null);
-      } else {
-        const errData = await res.json();
-        throw new Error(errData.error || 'Action failed');
-      }
+      toast({ title: 'Success', description: 'GRN processed successfully' });
+      if (onActionComplete) onActionComplete();
+      setActioningGrn(null);
     } catch (err: any) {
-      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+      toast({ title: 'Error', description: err.message || 'Action failed', variant: 'destructive' });
     }
   };
   return (
@@ -484,7 +466,7 @@ function GRNTable({ grns, onActionComplete, onViewDetails }: { grns: GRN[], onAc
                                     } else if (totalRej > 0) {
                                       calcAction = 'partial_accept';
                                     }
-                                    handleAction(grn.id, calcAction);
+                                    handleProcessGRN(calcAction as any);
                                   }}>Confirm Processing</Button>
                                 </div>
                               </div>
@@ -521,6 +503,7 @@ function CreateGRNForm({ onClose, onSuccess, grns }: { onClose: () => void; onSu
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
   const [selectedPoId, setSelectedPoId] = useState('');
   const [receivedDate, setReceivedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [receivedBy, setReceivedBy] = useState('Amit Patel');
   const [challanNumber, setChallanNumber] = useState('');
   const [invoiceNumber, setInvoiceNumber] = useState('');
   const [vendorFilter, setVendorFilter] = useState<string>('all');
@@ -548,18 +531,11 @@ function CreateGRNForm({ onClose, onSuccess, grns }: { onClose: () => void; onSu
   useEffect(() => {
     const fetchPOs = async () => {
       try {
-        const token = localStorage.getItem('campusspend_token');
-        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/orders/`, {
-          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-        });
-        if (res.ok) {
-          const raw = await res.json();
-          const data = Array.isArray(raw) ? raw : (raw.results ?? []);
-          const eligible = data
+        const data = await inventoryAPI.getPurchaseOrders();
+        const eligible = (Array.isArray(data) ? data : ((data as any).results ?? []))
             .filter((po: any) => (po.status === 'approved' || po.status === 'active' || po.status === 'vendor_accepted' || po.status === 'closed') && !grns.some((g) => g.poId === po.id))
             .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
           setPurchaseOrders(eligible);
-        }
       } catch (err) {
         console.error('Error fetching POs:', err);
       }
@@ -595,62 +571,38 @@ function CreateGRNForm({ onClose, onSuccess, grns }: { onClose: () => void; onSu
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!selectedPoId) {
-      toast({
-        title: 'Validation Error',
-        description: 'Please select a Purchase Order.',
-        variant: 'destructive',
-      });
+    if (!selectedPoId || !receivedDate || !receivedBy) {
+      toast({ title: 'Validation Error', description: 'Please fill all required fields.', variant: 'destructive' });
       return;
     }
 
     try {
-      const token = localStorage.getItem('campusspend_token');
-      const selectedPO = purchaseOrders.find(p => p.id === selectedPoId);
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/grns/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
-        body: JSON.stringify({
-          id: `GRN-${Date.now()}`,
-          po_id: selectedPoId,
-          received_by: 'Amit Patel',
-          received_date: receivedDate,
-          invoice_number: invoiceNumber || '',
-          invoice_date: invoiceDate || null,
-          vendor_name: selectedPO?.vendor_name || '',
-          attachments: attachments,
-          remarks,
-          status: 'pending',
-          items: items.map(item => ({
+      await inventoryAPI.createGRN({
+        id: `GRN-${Date.now()}`,
+        po_id: selectedPoId,
+        received_date: receivedDate,
+        received_by: receivedBy,
+        items: items.map(item => ({
             item_id: item.itemId,
             item_name: item.itemName,
             ordered_qty: item.orderedQty,
             received_qty: item.receivedQty,
             accepted_qty: 0,
             uom: item.uom
-          }))
-        })
+        })),
+        invoice_number: invoiceNumber || '',
+        vendor_name: purchaseOrders.find(p => p.id === selectedPoId)?.vendor_name || '',
+        attachments: attachments,
+        remarks,
+        status: 'pending'
       });
-
-      if (res.ok) {
-        toast({
-          title: 'Success',
-          description: 'Goods Receipt Note created successfully',
-        });
-        onSuccess();
-        onClose();
-      } else {
-        const errData = await res.json();
-        throw new Error(errData.error || 'Failed to create GRN');
-      }
+      toast({ title: 'Success', description: 'GRN created successfully' });
+      onSuccess();
+      onClose();
     } catch (err: any) {
       toast({
         title: 'Error',
-        description: err.message,
+        description: err.message || 'Failed to create GRN',
         variant: 'destructive',
       });
     }
@@ -790,14 +742,7 @@ function GRNDetailsView({ grnId, onBack }: GRNDetailsProps) {
       try {
         setLoading(true);
         setError(null);
-        const token = localStorage.getItem('campusspend_token');
-        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/grns/${grnId}/`, {
-          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-        });
-        if (!res.ok) {
-          throw new Error('Failed to load GRN details');
-        }
-        const data = await res.json();
+        const data = await inventoryAPI.getGRNById(grnId);
         setGrnData(data);
       } catch (err: any) {
         setError(err.message || 'An error occurred while fetching details.');

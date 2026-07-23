@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { inventoryAPI } from '@/api/inventory';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -70,15 +71,8 @@ export default function ItemMaster() {
 
   const fetchItems = async () => {
     try {
-      const token = localStorage.getItem('campusspend_token');
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/items/`, {
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-      });
-      if (res.ok) {
-        const raw = await res.json();
-        const data = Array.isArray(raw) ? raw : (raw.results ?? []);
-        setItems(data.map(mapItem));
-      }
+      const data = await inventoryAPI.getItems();
+      setItems(data.map(mapItem));
     } catch (err) {
       console.error('Error fetching items:', err);
     }
@@ -92,7 +86,7 @@ export default function ItemMaster() {
 
     try {
       await downloadFile(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/items/export/?format=xlsx`,
+        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/inventory/items/export/?format=xlsx`,
         `items_export_${Date.now()}.xlsx`,
         token || ''
       );
@@ -124,7 +118,7 @@ export default function ItemMaster() {
 
     try {
       const token = localStorage.getItem('campusspend_token');
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/items/import/`, {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/inventory/items/import/`, {
         method: 'POST',
         headers: token ? { 'Authorization': `Bearer ${token}` } : {},
         body: formData,
@@ -217,7 +211,7 @@ export default function ItemMaster() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <Card>
+          <Card className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setTypeFilter('all')}>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-lg bg-primary/10">
@@ -230,7 +224,7 @@ export default function ItemMaster() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setTypeFilter('spare')}>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-lg bg-blue-500/10">
@@ -243,7 +237,7 @@ export default function ItemMaster() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setTypeFilter('consumable')}>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-lg bg-green-500/10">
@@ -256,7 +250,7 @@ export default function ItemMaster() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setTypeFilter('service')}>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-lg bg-purple-500/10">
@@ -269,7 +263,9 @@ export default function ItemMaster() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => {
+            // Optional: low stock filter could be added, but for now just clickable
+          }}>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-lg bg-destructive/10">
@@ -456,18 +452,10 @@ function CreateItemForm({ onClose, onSuccess }: { onClose: () => void; onSuccess
     };
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/items/`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(body)
-      });
-      if (res.ok) {
-        toast({ title: 'Success', description: 'Item created successfully' });
-        onSuccess();
-        onClose();
-      } else {
-        toast({ title: 'Error', description: 'Failed to create item', variant: 'destructive' });
-      }
+      await inventoryAPI.createItem(body);
+      toast({ title: 'Success', description: 'Item created successfully' });
+      onSuccess();
+      onClose();
     } catch (err) {
       console.error(err);
       toast({ title: 'Error', description: 'Error creating item', variant: 'destructive' });

@@ -11,9 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Textarea } from '@/components/ui/textarea';
 import { 
-  Plus, Search, Package, CheckCircle, Clock, User, Building2,
-  ArrowUpRight, FileText
+  ArrowUpRight, FileText, Plus, Package, Clock, Search, User, Building2
 } from 'lucide-react';
+import { inventoryAPI } from '@/api/inventory';
 
 interface MaterialIssue {
   id: string;
@@ -66,6 +66,7 @@ const mapIssue = (issue: any): MaterialIssue => ({
 export default function IssueToSite() {
   const [issues, setIssues] = useState<MaterialIssue[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
   useEffect(() => {
@@ -74,15 +75,8 @@ export default function IssueToSite() {
 
   const fetchIssues = async () => {
     try {
-      const token = localStorage.getItem('campusspend_token');
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/issues/`, {
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-      });
-      if (res.ok) {
-        const raw = await res.json();
-        const data = Array.isArray(raw) ? raw : (raw.results ?? []);
-        setIssues(data.map(mapIssue));
-      }
+      const data = await inventoryAPI.getIssues();
+      setIssues(data.map(mapIssue));
     } catch (err) {
       console.error('Error fetching material issues:', err);
     }
@@ -90,8 +84,6 @@ export default function IssueToSite() {
 
   const handleReturn = async (issue: MaterialIssue) => {
     try {
-      const token = localStorage.getItem('campusspend_token');
-      // Set all items as fully returned
       const updatedItems = issue.items.map(item => ({
         item_id: item.itemId,
         item_name: item.itemName,
@@ -99,41 +91,25 @@ export default function IssueToSite() {
         returned_qty: item.issuedQty,
         uom: item.uom,
       }));
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/issues/${issue.id}/`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
-        body: JSON.stringify({
-          items: updatedItems,
-          status: 'fully_returned'
-        })
+      
+      await inventoryAPI.updateIssue(issue.id, {
+        status: 'fully_returned',
+        items: updatedItems
       });
-
-      if (res.ok) {
-        toast({
-          title: 'Success',
-          description: `Material returned successfully for issue ${issue.id}`,
-        });
-        fetchIssues();
-      } else {
-        const errData = await res.json();
-        throw new Error(errData.error || 'Failed to process return');
-      }
-    } catch (err: any) {
-      toast({
-        title: 'Error',
-        description: err.message,
-        variant: 'destructive',
-      });
+      toast({ title: 'Success', description: 'Materials marked as returned' });
+      fetchIssues();
+    } catch (err) {
+      console.error(err);
+      toast({ title: 'Error', description: 'Error updating return status', variant: 'destructive' });
     }
   };
 
-  const filteredIssues = issues.filter(issue => 
-    issue.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    issue.issuedTo.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredIssues = issues.filter(issue => {
+    const matchesSearch = issue.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          issue.issuedTo.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || issue.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
   const stats = {
     total: issues.length,
@@ -170,7 +146,7 @@ export default function IssueToSite() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
+          <Card className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setStatusFilter('all')}>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-lg bg-primary/10">
@@ -183,7 +159,7 @@ export default function IssueToSite() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setStatusFilter('issued')}>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-lg bg-warning/10">
@@ -196,7 +172,7 @@ export default function IssueToSite() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setStatusFilter('partially_returned')}>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-lg bg-accent/10">
@@ -209,7 +185,7 @@ export default function IssueToSite() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setStatusFilter('all')}>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-lg bg-success/10">
@@ -310,7 +286,6 @@ export default function IssueToSite() {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <Button variant="ghost" size="sm">View</Button>
                             {issue.status !== 'fully_returned' && (
                               <Button variant="default" size="sm" onClick={() => handleReturn(issue)}>Return</Button>
                             )}
@@ -338,7 +313,7 @@ interface ItemCatalog {
 
 function CreateIssueForm({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
   const [itemsList, setItemsList] = useState<ItemCatalog[]>([]);
-  const [selectedPerson, setSelectedPerson] = useState('Rajesh Kumar');
+  const [issuedTo, setIssuedTo] = useState('Rajesh Kumar');
   const [workOrderRef, setWorkOrderRef] = useState('');
   const [tower, setTower] = useState('Tower A');
   const [floor, setFloor] = useState('');
@@ -358,20 +333,13 @@ function CreateIssueForm({ onClose, onSuccess }: { onClose: () => void; onSucces
   useEffect(() => {
     const fetchCatalog = async () => {
       try {
-        const token = localStorage.getItem('campusspend_token');
-        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/items/`, {
-          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-        });
-        if (res.ok) {
-          const raw = await res.json();
-          const list = Array.isArray(raw) ? raw : (raw.results ?? []);
-          setItemsList(list.map((i: any) => ({
-            id: i.id,
-            name: i.name,
-            uom: i.uom,
-            currentStock: i.current_stock ?? 0,
-          })));
-        }
+        const items = await inventoryAPI.getItems();
+        setItemsList(items.map((i: any) => ({
+          id: i.id,
+          name: i.name,
+          uom: i.uom,
+          currentStock: i.current_stock ?? 0,
+        })));
       } catch (err) {
         console.error('Error fetching items catalog:', err);
       }
@@ -408,78 +376,47 @@ function CreateIssueForm({ onClose, onSuccess }: { onClose: () => void; onSucces
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    const filteredFormItems = formItems.filter(i => i.itemId !== '');
-    if (filteredFormItems.length === 0) {
-      toast({
-        title: 'Validation Error',
-        description: 'Please add at least one valid item to issue.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    if (!purpose.trim()) {
-      toast({
-        title: 'Validation Error',
-        description: 'Purpose field is required.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
+    
     // Determine department based on selected person name
     let department = 'Maintenance';
-    if (selectedPerson === 'Priya Sharma') department = 'Housekeeping';
-    else if (selectedPerson === 'Suresh Reddy') department = 'HVAC';
-    else if (selectedPerson === 'Meera Nair') department = 'Security';
+    if (issuedTo === 'Priya Sharma') department = 'Housekeeping';
+    else if (issuedTo === 'Suresh Reddy') department = 'HVAC';
+    else if (issuedTo === 'Meera Nair') department = 'Security';
 
+    if (!issuedTo || !tower || !purpose) {
+      toast({ title: 'Validation Error', description: 'Please fill all required fields.', variant: 'destructive' });
+      return;
+    }
+    
     try {
-      const token = localStorage.getItem('campusspend_token');
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/issues/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
-        body: JSON.stringify({
-          id: `ISS-${Date.now()}`,
-          issued_to: selectedPerson,
-          department,
-          tower,
-          floor: floor || 'Ground Floor',
-          work_order_ref: workOrderRef || null,
-          purpose,
-          issued_date: new Date().toISOString().split('T')[0],
-          status: 'issued',
-          issued_by: 'Vikram Singh',
-          items: filteredFormItems.map(({ itemId, itemName, issuedQty, returnedQty, uom }) => ({
-            item_id: itemId,
-            item_name: itemName,
-            issued_qty: issuedQty,
-            returned_qty: returnedQty,
-            uom
-          }))
+      await inventoryAPI.createIssue({
+        id: `MI-${Date.now()}`,
+        issued_to: issuedTo,
+        issued_date: new Date().toISOString().split('T')[0],
+        department,
+        tower,
+        floor,
+        work_order_ref: workOrderRef,
+        purpose,
+        status: 'issued',
+        issued_by: 'Amit Patel',
+        items: formItems.map(item => {
+          const cat = itemsList.find(i => i.id === item.itemId);
+          return {
+            item_id: item.itemId,
+            item_name: cat?.name || '',
+            issued_qty: item.issuedQty,
+            returned_qty: 0,
+            uom: cat?.uom || ''
+          };
         })
       });
-
-      if (res.ok) {
-        toast({
-          title: 'Success',
-          description: 'Material issued successfully',
-        });
-        onSuccess();
-        onClose();
-      } else {
-        const errData = await res.json();
-        throw new Error(errData.error || 'Failed to issue material');
-      }
-    } catch (err: any) {
-      toast({
-        title: 'Error',
-        description: err.message,
-        variant: 'destructive',
-      });
+      toast({ title: 'Success', description: 'Material issue created successfully' });
+      onSuccess();
+      onClose();
+    } catch (err) {
+      console.error(err);
+      toast({ title: 'Error', description: 'Failed to create material issue', variant: 'destructive' });
     }
   };
 
@@ -488,7 +425,7 @@ function CreateIssueForm({ onClose, onSuccess }: { onClose: () => void; onSucces
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>Issue To *</Label>
-          <Select value={selectedPerson} onValueChange={setSelectedPerson}>
+          <Select value={issuedTo} onValueChange={setIssuedTo}>
             <SelectTrigger>
               <SelectValue placeholder="Select person" />
             </SelectTrigger>

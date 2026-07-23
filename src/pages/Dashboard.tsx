@@ -125,10 +125,13 @@ export default function Dashboard() {
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
   const [topVendorsData, setTopVendorsData] = useState<any[]>([]);
 
-  // Multi-tenant Reference Stats
-  const [orgs, setOrgs] = useState<any[]>([]);
-  const [sites, setSites] = useState<any[]>([]);
-  const [usersList, setUsersList] = useState<any[]>([]);
+  // Dynamic Reference Stats from Backend
+  const [bannerStats, setBannerStats] = useState({ title: "Campus Procurement", subtitle: "Loading..." });
+  const [derivedStats, setDerivedStats] = useState({ totalRevenue: 0, activeSites: 0, totalUsers: 0, totalCompanies: 0 });
+  const [derivedUpsale, setDerivedUpsale] = useState<any[]>([]);
+  const [companyWiseSite, setCompanyWiseSite] = useState<any[]>([]);
+  const [moduleWiseSite, setModuleWiseSite] = useState<any[]>([]);
+  const [derivedModuleRevenue, setDerivedModuleRevenue] = useState<any[]>([]);
 
   useEffect(() => {
     if (user) {
@@ -158,6 +161,12 @@ export default function Dashboard() {
         if (metricsData.totalSpendDrilldown) {
           setDrilldownData(metricsData.totalSpendDrilldown);
         }
+        if (metricsData.bannerStats) setBannerStats(metricsData.bannerStats);
+        if (metricsData.derivedStats) setDerivedStats(metricsData.derivedStats);
+        if (metricsData.derivedUpsale) setDerivedUpsale(metricsData.derivedUpsale);
+        if (metricsData.companyWiseSite) setCompanyWiseSite(metricsData.companyWiseSite);
+        if (metricsData.moduleWiseSite) setModuleWiseSite(metricsData.moduleWiseSite);
+        if (metricsData.derivedModuleRevenue) setDerivedModuleRevenue(metricsData.derivedModuleRevenue);
       }
 
       // Indents
@@ -185,21 +194,6 @@ export default function Dashboard() {
         setTopVendorsData(list.slice(0, 5));
       }
 
-      // Multi-tenant Org data for Dashboard Enhancements
-      const orgsData = await commonAPI.getOrganizations();
-      if (orgsData) {
-        setOrgs(Array.isArray(orgsData) ? orgsData : (orgsData.results || []));
-      }
-
-      const sitesData = await commonAPI.getSites();
-      if (sitesData) {
-        setSites(Array.isArray(sitesData) ? sitesData : (sitesData.results || []));
-      }
-
-      const usersData = await commonAPI.getUsers();
-      if (usersData) {
-        setUsersList(Array.isArray(usersData) ? usersData : (usersData.results || []));
-      }
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
     }
@@ -235,50 +229,19 @@ export default function Dashboard() {
 
   const getTrendValue = (metric: any) => {
     if (!metric || metric.value === undefined || metric.previousValue === undefined) return undefined;
+    if (metric.previousValue === 0) return metric.value > 0 ? '+100% vs last month' : '0% vs last month';
     const diff = metric.value - metric.previousValue;
-    const percent = Math.abs(Math.round((diff / (metric.previousValue || 1)) * 100));
+    const percent = Math.abs(Math.round((diff / metric.previousValue) * 100));
     return `${metric.value >= metric.previousValue ? '+' : '-'}${percent}% vs last month`;
   };
 
-  // Derive Reference stats and charts data dynamically from database!
-  const totalRevenueVal = orgs.reduce((sum, o) => sum + (Number(o.billing_rate) || 0), 0);
-  const totalRevenueFormatted = `₹${totalRevenueVal.toLocaleString('en-IN')}/-`;
+  const totalRevenueFormatted = `₹${(derivedStats?.totalRevenue || 0).toLocaleString('en-IN')}/-`;
 
-  const derivedStats = [
+  const derivedStatsList = [
     { icon: IndianRupee, label: "Total Revenue", value: totalRevenueFormatted, desc: "YTD billing value" },
-    { icon: Building2, label: "Active Sites", value: String(sites.length), desc: "Configured property sites" },
-    { icon: Users, label: "Total Users", value: String(usersList.length), desc: "Registered platform users" },
-    { icon: Building, label: "Total Companies", value: String(orgs.length), desc: "Configured organization nodes" },
-  ];
-
-  const derivedUpsale = orgs.slice(0, 6).map((org) => {
-    const orgSites = sites.filter((s) => s.organization === org.id).length;
-    return {
-      title: org.company_name || org.name,
-      sites: orgSites || 1,
-      amount: `₹${(Number(org.billing_rate) || 150000).toLocaleString('en-IN')}`,
-    };
-  });
-
-  const companyWiseSite = orgs.slice(0, 7).map((org) => ({
-    label: org.company_name || org.name,
-    value: sites.filter((s) => s.organization === org.id).length || 1,
-  }));
-
-  const moduleWiseSite = [
-    { label: "Compliance", value: sites.filter((s) => s.module_configuration?.["site_setup:compliance"]).length || 2 },
-    { label: "Assets", value: sites.filter((s) => s.module_configuration?.["core:assets"]).length || 3 },
-    { label: "VMS", value: sites.filter((s) => s.module_configuration?.["core:vendors"]).length || 4 },
-    { label: "Attendance", value: sites.filter((s) => s.module_configuration?.["hr:attendance"]).length || 1 },
-    { label: "Salary", value: sites.filter((s) => s.module_configuration?.["financial:salary"]).length || 2 },
-  ];
-
-  const derivedModuleRevenue = [
-    { title: "Assets", sites: sites.filter((s) => s.module_configuration?.["core:assets"]).length || 1, amount: "₹3,78,300" },
-    { title: "Service Desk", sites: sites.filter((s) => s.module_configuration?.["core:tickets"]).length || 1, amount: "₹2,50,000" },
-    { title: "Soft Service", sites: sites.filter((s) => s.module_configuration?.["advanced:soft_services"]).length || 1, amount: "₹1,80,000" },
-    { title: "VMS", sites: sites.filter((s) => s.module_configuration?.["core:vendors"]).length || 1, amount: "₹2,78,300" },
-    { title: "Compliance", sites: sites.filter((s) => s.module_configuration?.["site_setup:compliance"]).length || 1, amount: "₹1,78,300" },
+    { icon: Building2, label: "Active Sites", value: String(derivedStats?.activeSites || 0), desc: "Configured property sites" },
+    { icon: Users, label: "Total Users", value: String(derivedStats?.totalUsers || 0), desc: "Registered platform users" },
+    { icon: Building, label: "Total Companies", value: String(derivedStats?.totalCompanies || 0), desc: "Configured organization nodes" },
   ];
 
   function ListRows({ items }: { items: any[] }) {
@@ -477,10 +440,10 @@ export default function Dashboard() {
                 <Building2 className="h-10 w-10" />
                 <div>
                   <h2 className="text-xl font-bold">
-                    Grade A Office Campus
+                    {bannerStats.title}
                   </h2>
                   <p className="text-primary-foreground/80">
-                    3 Towers • 45 Floors • 200+ Active Vendors
+                    {bannerStats.subtitle}
                   </p>
                 </div>
               </div>
@@ -525,7 +488,7 @@ export default function Dashboard() {
 
         {/* Reference Stats Grid */}
         <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {derivedStats.map((item) => {
+          {derivedStatsList.map((item) => {
             const IconComponent = item.icon;
             return (
               <Card key={item.label} className="border border-border/50 bg-card shadow-sm p-6 hover:shadow-md transition-shadow duration-200">

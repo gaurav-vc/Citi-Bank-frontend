@@ -10,8 +10,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
 import { 
-  Search, Filter, Plus, Wrench, Clock, CheckCircle, XCircle,
-  Eye, Edit, Building2, Calendar, DollarSign, AlertTriangle, Play
+  Search, Filter, Plus, Wrench, Clock, CheckCircle, CheckCircle2, XCircle,
+  Eye, Edit, Building2, Calendar, DollarSign, AlertTriangle, Play, Activity
 } from 'lucide-react';
 
 interface WorkOrder {
@@ -131,7 +131,7 @@ export default function WorkOrders() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
+          <Card className="cursor-pointer transition-colors hover:bg-muted/50" onClick={() => setStatusFilter('all')}>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-lg bg-primary/10">
@@ -144,11 +144,11 @@ export default function WorkOrders() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="cursor-pointer transition-colors hover:bg-muted/50" onClick={() => setStatusFilter('in_progress')}>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-lg bg-warning/10">
-                  <Play className="h-6 w-6 text-warning" />
+                  <Clock className="h-6 w-6 text-warning" />
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">In Progress</p>
@@ -157,11 +157,11 @@ export default function WorkOrders() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="cursor-pointer transition-colors hover:bg-muted/50" onClick={() => setStatusFilter('completed')}>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-lg bg-success/10">
-                  <CheckCircle className="h-6 w-6 text-success" />
+                  <CheckCircle2 className="h-6 w-6 text-success" />
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Completed</p>
@@ -170,15 +170,15 @@ export default function WorkOrders() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="cursor-pointer transition-colors hover:bg-muted/50" onClick={() => setStatusFilter('all')}>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-accent/10">
-                  <DollarSign className="h-6 w-6 text-accent" />
+                <div className="p-3 rounded-lg bg-info/10">
+                  <Activity className="h-6 w-6 text-info" />
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Total Value</p>
-                  <p className="text-2xl font-bold">₹{(stats.totalValue / 100000).toFixed(0)}L</p>
+                  <p className="text-2xl font-bold">₹{(stats.totalValue / 1000000).toFixed(2)}M</p>
                 </div>
               </div>
             </CardContent>

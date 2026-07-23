@@ -136,7 +136,7 @@ export default function AMCOrders() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <Card>
+          <Card className="cursor-pointer transition-colors hover:bg-muted/50" onClick={() => setStatusFilter('all')}>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-lg bg-primary/10">
@@ -149,7 +149,7 @@ export default function AMCOrders() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="cursor-pointer transition-colors hover:bg-muted/50" onClick={() => setStatusFilter('active')}>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-lg bg-success/10">
@@ -162,7 +162,7 @@ export default function AMCOrders() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="cursor-pointer transition-colors hover:bg-muted/50" onClick={() => setStatusFilter('expiring_soon')}>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-lg bg-warning/10">
@@ -175,7 +175,7 @@ export default function AMCOrders() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="cursor-pointer transition-colors hover:bg-muted/50" onClick={() => setStatusFilter('all')}>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-lg bg-accent/10">
@@ -183,12 +183,12 @@ export default function AMCOrders() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Annual Value</p>
-                  <p className="text-2xl font-bold">₹{(stats.totalValue / 100000).toFixed(0)}L</p>
+                  <p className="text-2xl font-bold">₹{(stats.totalValue / 1000000).toFixed(2)}M</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="cursor-pointer transition-colors hover:bg-muted/50" onClick={() => setStatusFilter('all')}>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-lg bg-primary/10">

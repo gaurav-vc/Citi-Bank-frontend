@@ -338,13 +338,13 @@ export default function VendorMaster() {
 
         {/* Stats Cards */}
         <div className="grid gap-4 md:grid-cols-4">
-          <Card>
+          <Card className="cursor-pointer transition-colors hover:bg-muted/50" onClick={() => setStatusFilter('all')}>
             <CardContent className="pt-6">
               <div className="text-2xl font-bold">{vendors.length}</div>
               <p className="text-sm text-muted-foreground">Total Vendors</p>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="cursor-pointer transition-colors hover:bg-muted/50" onClick={() => setStatusFilter('active')}>
             <CardContent className="pt-6">
               <div className="text-2xl font-bold text-success">
                 {vendors.filter((v) => v.status === 'active').length}
@@ -352,7 +352,7 @@ export default function VendorMaster() {
               <p className="text-sm text-muted-foreground">Active</p>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="cursor-pointer transition-colors hover:bg-muted/50" onClick={() => setStatusFilter('all')}>
             <CardContent className="pt-6">
               <div className="text-2xl font-bold text-warning">
                 {vendors.filter((v) => v.msmeStatus).length}
@@ -360,7 +360,7 @@ export default function VendorMaster() {
               <p className="text-sm text-muted-foreground">MSME Registered</p>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="cursor-pointer transition-colors hover:bg-muted/50" onClick={() => setStatusFilter('all')}>
             <CardContent className="pt-6">
               <div className="text-2xl font-bold text-destructive">
                 {vendors.filter((v) => new Date(v.complianceExpiry) < new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)).length}

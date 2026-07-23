@@ -11,9 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Textarea } from '@/components/ui/textarea';
 import { 
-  Plus, Search, Trash2, CheckCircle, Clock, XCircle, AlertTriangle,
-  FileText, Package, DollarSign
+  FileText, Package, DollarSign, Clock, CheckCircle, Trash2, XCircle, Plus, AlertTriangle, Search
 } from 'lucide-react';
+import { inventoryAPI } from '@/api/inventory';
 
 interface ScrapItem {
   id: string;
@@ -64,6 +64,7 @@ const mapScrap = (s: any): ScrapItem => {
 export default function ScrapDisposal() {
   const [scrapItems, setScrapItems] = useState<ScrapItem[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
   useEffect(() => {
@@ -72,15 +73,8 @@ export default function ScrapDisposal() {
 
   const fetchScrap = async () => {
     try {
-      const token = localStorage.getItem('campusspend_token');
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/scrap/`, {
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-      });
-      if (res.ok) {
-        const raw = await res.json();
-        const data = Array.isArray(raw) ? raw : (raw.results ?? []);
-        setScrapItems(data.map(mapScrap));
-      }
+      const data = await inventoryAPI.getScraps();
+      setScrapItems(data.map(mapScrap));
     } catch (err) {
       console.error('Error fetching scrap items:', err);
     }
@@ -88,41 +82,26 @@ export default function ScrapDisposal() {
 
   const handleUpdateStatus = async (id: string, status: string, recoveredValue?: number) => {
     try {
-      const token = localStorage.getItem('campusspend_token');
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/scrap/${id}/`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
-        body: JSON.stringify({
-          status,
-          recovered_value: recoveredValue,
-          disposal_date: status === 'disposed' ? new Date().toISOString().split('T')[0] : undefined
-        })
+      await inventoryAPI.updateScrap(id, {
+        status,
+        recovered_value: recoveredValue,
+        // approved_by: 'Vikram Singh',
+        disposal_date: status === 'disposed' ? new Date().toISOString().split('T')[0] : undefined
       });
-      if (res.ok) {
-        toast({
-          title: 'Status Updated',
-          description: `Disposal request ${status} successfully.`,
-        });
-        fetchScrap();
-      } else {
-        throw new Error('Failed to update status');
-      }
-    } catch (err: any) {
-      toast({
-        title: 'Error',
-        description: err.message,
-        variant: 'destructive',
-      });
+      toast({ title: 'Success', description: `Scrap disposal request ${status} successfully.` });
+      fetchScrap();
+    } catch (err) {
+      console.error(err);
+      toast({ title: 'Error', description: 'Failed to update status', variant: 'destructive' });
     }
   };
 
-  const filteredItems = scrapItems.filter(item => 
-    item.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.itemName.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredItems = scrapItems.filter(item => {
+    const matchesSearch = item.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          item.itemName.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || item.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
   const stats = {
     total: scrapItems.length,
@@ -160,7 +139,7 @@ export default function ScrapDisposal() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <Card>
+          <Card className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setStatusFilter('all')}>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-lg bg-primary/10">
@@ -173,7 +152,7 @@ export default function ScrapDisposal() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setStatusFilter('pending')}>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-lg bg-warning/10">
@@ -186,7 +165,7 @@ export default function ScrapDisposal() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setStatusFilter('disposed')}>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-lg bg-success/10">
@@ -199,7 +178,7 @@ export default function ScrapDisposal() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setStatusFilter('all')}>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-lg bg-destructive/10">
@@ -212,7 +191,7 @@ export default function ScrapDisposal() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setStatusFilter('all')}>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 <div className="p-3 rounded-lg bg-accent/10">
@@ -339,20 +318,13 @@ function CreateDisposalForm({ onClose, onSuccess }: { onClose: () => void; onSuc
   useEffect(() => {
     const fetchCatalog = async () => {
       try {
-        const token = localStorage.getItem('campusspend_token');
-        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/items/`, {
-          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-        });
-        if (res.ok) {
-          const raw = await res.json();
-          const list = Array.isArray(raw) ? raw : (raw.results ?? []);
-          setItemsList(list);
-          if (list.length > 0) {
-            setItemId(list[0].id);
-            setItemName(list[0].name);
-            setCategory(list[0].category || 'Electrical');
-            setUom(list[0].uom || 'Nos');
-          }
+        const items = await inventoryAPI.getItems();
+        setItemsList(items);
+        if (items.length > 0) {
+          setItemId(items[0].id);
+          setItemName(items[0].name);
+          setCategory(items[0].category || 'Electrical');
+          setUom(items[0].uom || 'Nos');
         }
       } catch (err) {
         console.error('Error fetching items catalog:', err);
@@ -384,8 +356,7 @@ function CreateDisposalForm({ onClose, onSuccess }: { onClose: () => void; onSuc
     }
 
     try {
-      const token = localStorage.getItem('campusspend_token');
-      const body = {
+      await inventoryAPI.createScrap({
         id: `SCP-${Date.now()}`,
         total_value: estimatedValue,
         disposal_date: new Date().toISOString().split('T')[0],
@@ -403,34 +374,12 @@ function CreateDisposalForm({ onClose, onSuccess }: { onClose: () => void; onSuc
           disposal_method: disposalMethod,
           requested_by: 'Vikram Singh',
         }]
-      };
-
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/scrap/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
-        body: JSON.stringify(body)
       });
-
-      if (res.ok) {
-        toast({
-          title: 'Success',
-          description: 'Disposal request submitted successfully',
-        });
-        onSuccess();
-        onClose();
-      } else {
-        const errData = await res.json();
-        throw new Error(errData.error || 'Failed to submit disposal request');
-      }
+      toast({ title: 'Success', description: 'Disposal request submitted successfully' });
+      onSuccess();
+      onClose();
     } catch (err: any) {
-      toast({
-        title: 'Error',
-        description: err.message,
-        variant: 'destructive',
-      });
+      toast({ title: 'Error', description: err.message || 'Failed to submit disposal request', variant: 'destructive' });
     }
   };
 
