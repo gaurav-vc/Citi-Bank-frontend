@@ -7,6 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
 import { ChevronRight, Settings, ShieldCheck, Eye, EyeOff, Save, Check, Star } from "lucide-react";
 
@@ -103,6 +104,7 @@ export default function ModulesPermissionsPage() {
   const [selectedRoleId, setSelectedRoleId] = useState<string>("");
   const [permissions, setPermissions] = useState<Record<string, Record<ActionKey, boolean>>>({});
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   // Queries
   const { data: roles = [], isLoading: isLoadingRoles } = useQuery({
@@ -172,7 +174,7 @@ export default function ModulesPermissionsPage() {
         };
 
         if (existing) {
-          const changed = 
+          const changed =
             existing.can_view !== payload.can_view ||
             existing.can_create !== payload.can_create ||
             existing.can_edit !== payload.can_edit ||
@@ -255,7 +257,7 @@ export default function ModulesPermissionsPage() {
   return (
     <MainLayout>
       <div className="surface w-full">
-        
+
         {/* Head Area */}
         <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
@@ -295,7 +297,14 @@ export default function ModulesPermissionsPage() {
             </div>
 
             <div className="flex items-center gap-2.5">
-              <Button variant="outline" className="text-xs font-semibold h-9 border-slate-200 dark:border-slate-800">
+              <Button
+                onClick={() => {
+                  if (selectedRoleId) setIsPreviewOpen(true);
+                  else toast({ title: "Select a role", description: "Please select a role to preview.", variant: "destructive" });
+                }}
+                variant="outline"
+                className="text-xs font-semibold h-9 border-slate-200 dark:border-slate-800"
+              >
                 <Eye className="mr-1.5 h-4 w-4" /> Preview as Role
               </Button>
               <Button
@@ -402,6 +411,60 @@ export default function ModulesPermissionsPage() {
             </CardContent>
           </Card>
         )}
+
+        {/* Preview Dialog */}
+        <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+          <DialogContent className="max-w-md bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+            <DialogHeader>
+              <DialogTitle className="text-lg font-bold flex items-center gap-2">
+                <Eye className="h-10 w-15 text-slate-500" />
+                Role Preview: {selectedRole?.role_name}
+              </DialogTitle>
+              <DialogDescription className="text-xs text-muted-foreground">
+                This is a live preview of the modules and sections this role will be able to view based on the current configuration.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="mt-4 border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden bg-slate-50/50 dark:bg-slate-950/50 shadow-inner">
+              <div className="max-h-[60vh] overflow-y-auto p-2 space-y-4">
+                {MODULE_ACCESS_SECTIONS.map((group) => {
+                  const visibleItems = group.items.filter(item => permissions[item.key]?.view);
+                  if (visibleItems.length === 0) return null;
+
+                  return (
+                    <div key={group.id} className="space-y-1">
+                      <div className="px-3 py-1.5 text-[10px] uppercase font-bold tracking-wider text-slate-400">
+                        {group.title}
+                      </div>
+                      <div className="space-y-0.5">
+                        {visibleItems.map(item => (
+                          <div key={item.key} className="flex items-center justify-between px-3 py-2 rounded-md hover:bg-white dark:hover:bg-slate-900 transition-colors border border-transparent hover:border-slate-200 dark:hover:border-slate-800 shadow-sm">
+                            <div className="flex items-center gap-2">
+                              <Star className={`h-3.5 w-3.5 ${item.starred ? "text-orange-500 fill-orange-500" : "text-slate-300 dark:text-slate-700"}`} />
+                              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">{item.label}</span>
+                            </div>
+                            <div className="flex gap-1.5">
+                              {permissions[item.key]?.create && <Badge variant="outline" className="text-[9px] h-4 py-0 px-1 border-green-200 text-green-700 bg-green-50 uppercase shadow-none">Create</Badge>}
+                              {permissions[item.key]?.modify && <Badge variant="outline" className="text-[9px] h-4 py-0 px-1 border-blue-200 text-blue-700 bg-blue-50 uppercase shadow-none">Modify</Badge>}
+                              {permissions[item.key]?.delete && <Badge variant="outline" className="text-[9px] h-4 py-0 px-1 border-red-200 text-red-700 bg-red-50 uppercase shadow-none">Delete</Badge>}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {MODULE_ACCESS_SECTIONS.every(group => group.items.filter(item => permissions[item.key]?.view).length === 0) && (
+                  <div className="p-8 text-center text-slate-400">
+                    <ShieldCheck className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                    <p className="text-xs">No modules are visible to this role.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
 
       </div>
     </MainLayout>

@@ -341,6 +341,7 @@ export function Sidebar() {
     if (key === 'procurement:expenses_create' || key === 'procurement:expenses_my') checkKey = 'procurement:expenses';
     if (key === 'procurement:rfqs_active' || key === 'procurement:rfqs_comparison' || key === 'procurement:rfqs_vendor' || key === 'procurement:rfqs_quote') checkKey = 'procurement:rfqs';
     if (key === 'procurement:billing_approvals') checkKey = 'procurement:billing';
+    if (key === 'reports:dashboard') checkKey = 'core:dashboard';
 
     // 2. If user has DB permissions configured (more than just the default dashboard) — use ONLY those
     if (user.permissions && Object.keys(user.permissions).length > 0) {
@@ -541,9 +542,7 @@ export function Sidebar() {
   }
 
   // Filter modules based on dynamic permissions
-  console.log('Sidebar Debug - user.role:', user.role);
-  console.log('Sidebar Debug - user.permissions:', JSON.stringify(user.permissions));
-  console.log('Sidebar Debug - evaluation for procurement:qc:', isFeaturePermitted('procurement:qc_checklists'));
+
 
   const filteredModules = activeModules.map(mod => {
     const visibleFeatures = mod.items.filter(item => {
@@ -553,18 +552,14 @@ export function Sidebar() {
       }
       return isFeaturePermitted(item.key);
     });
-    if (mod.title.toLowerCase().includes('qc')) {
-      console.log('Sidebar Debug - QC Module items length before filter:', mod.items.length, 'after filter:', visibleFeatures.length);
-    }
+
     return {
       ...mod,
       items: visibleFeatures
     };
   }).filter(mod => {
     const isKeep = mod.items.length > 0;
-    if (mod.title.toLowerCase().includes('qc')) {
-      console.log('Sidebar Debug - Is QC & Execution filtered out:', !isKeep);
-    }
+
     return isKeep;
   });
 

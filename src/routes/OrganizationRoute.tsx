@@ -27,7 +27,7 @@ export function OrganizationRoute({ children }: OrganizationRouteProps) {
     'cxo'
   ];
 
-  if (ORGANIZATION_BYPASS_ROLES.includes(user.role)) {
+  if (ORGANIZATION_BYPASS_ROLES.some(role => user.role.toLowerCase().includes(role))) {
     return <>{children}</>;
   }
 

@@ -261,6 +261,7 @@ export default function Dashboard() {
   }
 
   function WaveChart({ items, colorClass }: { items: any[]; colorClass: string }) {
+    if (!items || items.length === 0) return null;
     const width = 700;
     const height = 220;
     const topPadding = 20;
@@ -422,7 +423,7 @@ export default function Dashboard() {
           <div className="flex items-center gap-3">
             <Button variant="outline">
               <Calendar className="h-4 w-4 mr-2" />
-              Jan 2024
+              {new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
             </Button>
 
             <Button onClick={handleGenerateReport}>
