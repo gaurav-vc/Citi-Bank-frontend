@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, Organization } from "@/lib/api";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { allCountries, locationTree } from "@/utils/constants";
+import { ArrowLeft } from "lucide-react";
 
 const placeholderOption = () => (
   <option value="" disabled hidden>
@@ -214,6 +215,15 @@ export default function AddOrganizationPage() {
   return (
     <MainLayout>
       <section className="surface add-org-page">
+        <nav className="flex items-center gap-2 mb-6" aria-label="Breadcrumb">
+          <button 
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-1 text-slate-500 hover:text-slate-800 transition-colors font-medium"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            Back
+          </button>
+        </nav>
         <header className="add-org-header">
           <h1 className="text-3xl font-bold">{isEdit ? "Edit Organization" : "Add New Organization"}</h1>
         </header>

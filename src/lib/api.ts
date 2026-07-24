@@ -79,13 +79,8 @@ export const api = {
     method: 'POST',
     body: JSON.stringify(data)
   }),
-  updateOrganization: (id: string | number, data: Partial<Organization>) => request<Organization>(`/api/organizations/${id}/`, {
-    method: 'PATCH',
-    body: JSON.stringify(data)
-  }),
-  deleteOrganization: (id: string | number) => request<void>(`/api/organizations/${id}/`, {
-    method: 'DELETE'
-  }),
+  updateOrganization: (id: number | string, data: any) => request<any>(`/api/organizations/${id}/`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteOrganization: (id: number | string) => request<void>(`/api/organizations/${id}/`, { method: 'DELETE' }),
 
   // Sites
   getSites: () => request<any[]>('/api/sites/'),
@@ -110,7 +105,7 @@ export const api = {
     body: JSON.stringify(data)
   }),
   updateDepartment: (id: string | number, data: any) => request<any>(`/api/departments/${id}/`, {
-    method: 'PATCH',
+    method: 'PUT',
     body: JSON.stringify(data)
   }),
   deleteDepartment: (id: string | number) => request<void>(`/api/departments/${id}/`, {

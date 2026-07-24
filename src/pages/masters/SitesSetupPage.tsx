@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { MainLayout } from "@/components/layout/MainLayout";
+import { Edit, Trash2, ArrowLeft } from "lucide-react";
 
 export default function SitesSetupPage() {
   const navigate = useNavigate();
@@ -80,17 +81,24 @@ export default function SitesSetupPage() {
         </header>
 
         {contextOrg ? (
-          <section className="panel org-detail-context-banner">
+          <section className="panel org-detail-context-banner flex items-center justify-between">
             <p>
               <strong>Organization context:</strong> {contextOrg.company_name || contextOrg.name}
               <button
                 type="button"
-                className="link-btn org-detail-context-clear"
+                className="link-btn org-detail-context-clear ml-4 text-blue-600 hover:underline"
                 onClick={() => navigate("/masters/sites")}
               >
                 Clear filter
               </button>
             </p>
+            <button
+              type="button"
+              className="flex items-center gap-2 text-slate-600 hover:text-slate-900 font-medium"
+              onClick={() => navigate(`/masters/organizations/${contextOrg.id}`)}
+            >
+              <ArrowLeft className="w-4 h-4" /> Go back to Organization
+            </button>
           </section>
         ) : null}
 
@@ -174,32 +182,32 @@ export default function SitesSetupPage() {
                       <td>Admin</td>
                       <td>{formattedDate}</td>
                       <td>
-                        <button
-                          type="button"
-                          className="link-btn org-table-view-btn"
-                          onClick={() =>
-                            navigate(
-                              `/masters/sites/new?siteId=${encodeURIComponent(row.id)}${
-                                row.organization
-                                  ? `&organizationId=${encodeURIComponent(row.organization)}`
-                                  : ""
-                              }`
-                            )
-                          }
-                        >
-                          Manage Site
-                        </button>
-                        <span className="org-detail-action-sep" aria-hidden="true">
-                          {" "}
-                          ·{" "}
-                        </span>
-                        <button
-                          type="button"
-                          className="link-btn org-table-view-btn"
-                          onClick={() => handleDeleteSite(row)}
-                        >
-                          Delete
-                        </button>
+                        <div className="flex items-center gap-3">
+                          <button
+                            type="button"
+                            className="link-btn org-table-view-btn text-slate-600 hover:text-slate-900 font-medium flex items-center justify-center p-1 rounded-md hover:bg-slate-100 transition-colors"
+                            title="Edit Site"
+                            onClick={() =>
+                              navigate(
+                                `/masters/sites/new?siteId=${encodeURIComponent(row.id)}${
+                                  row.organization
+                                    ? `&organizationId=${encodeURIComponent(row.organization)}`
+                                    : ""
+                                }`
+                              )
+                            }
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            className="link-btn org-table-view-btn text-red-500 hover:text-red-700 font-medium flex items-center justify-center p-1 rounded-md hover:bg-red-50 transition-colors"
+                            title="Delete Site"
+                            onClick={() => handleDeleteSite(row)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );

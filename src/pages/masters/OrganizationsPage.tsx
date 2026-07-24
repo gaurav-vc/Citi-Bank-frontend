@@ -1,9 +1,10 @@
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { allCountries, locationTree } from "@/utils/constants";
+import { Eye, Edit, Trash2 } from "lucide-react";
 
 const flattenStates = (countryData: any) =>
   countryData ? Object.values(countryData).flatMap((regionNode: any) => Object.keys(regionNode || {})) : [];
@@ -17,6 +18,7 @@ const flattenCities = (countryData: any) =>
 
 export default function OrganizationsPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [country, setCountry] = useState("");
   const [region, setRegion] = useState("");
@@ -32,6 +34,13 @@ export default function OrganizationsPage() {
   const { data: sites = [], isLoading: isSitesLoading } = useQuery({
     queryKey: ["sites"],
     queryFn: api.getSites,
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => api.deleteOrganization(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["organizations"] });
+    },
   });
 
   const loading = isOrgsLoading || isSitesLoading;
@@ -107,13 +116,36 @@ export default function OrganizationsPage() {
           <td>{formattedDate}</td>
           <td>Admin</td>
           <td>
-            <button
-              type="button"
-              className="link-btn org-table-view-btn"
-              onClick={() => navigate(`/masters/organizations/${row.id}`)}
-            >
-              View
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                className="link-btn org-table-view-btn text-blue-600 hover:text-blue-800 font-medium flex items-center justify-center p-1 rounded-md hover:bg-blue-50 transition-colors"
+                title="View"
+                onClick={() => navigate(`/masters/organizations/${row.id}`)}
+              >
+                <Eye className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                className="link-btn org-table-edit-btn text-slate-600 hover:text-slate-900 font-medium flex items-center justify-center p-1 rounded-md hover:bg-slate-100 transition-colors"
+                title="Edit"
+                onClick={() => navigate(`/masters/organizations/${row.id}/edit`)}
+              >
+                <Edit className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                className="link-btn org-table-delete-btn text-red-500 hover:text-red-700 font-medium flex items-center justify-center p-1 rounded-md hover:bg-red-50 transition-colors"
+                title="Delete"
+                onClick={() => {
+                  if (window.confirm("Are you sure you want to delete this organization?")) {
+                    deleteMutation.mutate(row.id);
+                  }
+                }}
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
           </td>
         </tr>
       );

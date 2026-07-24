@@ -243,7 +243,8 @@ const staticModulesFallback: DBModule[] = [
     items: [
       { key: 'core:users', label: 'Users & Roles' },
       { key: 'core:settings', label: 'Role Permissions' },
-      { key: 'core:workflows', label: 'Approval Workflows' }
+      { key: 'core:workflows', label: 'Approval Workflows' },
+      { key: 'core:departments', label: 'Departments' }
     ]
   }
 ];

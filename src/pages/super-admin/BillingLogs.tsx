@@ -49,7 +49,11 @@ export default function SuperAdminBillingLogs() {
   }, [logs, search]);
 
   if (loading) {
-    return <div className="p-6 text-slate-500 flex items-center justify-center min-h-screen">Loading billing data...</div>;
+    return (
+      <MainLayout>
+        <div className="p-6 text-slate-500 flex items-center justify-center min-h-screen">Loading billing data...</div>
+      </MainLayout>
+    );
   }
 
   return (
@@ -66,7 +70,7 @@ export default function SuperAdminBillingLogs() {
               placeholder="Search organization billing..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full px-4 py-2.5 text-sm rounded-lg border border-slate-200 bg-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+              className="w-full px-4 py-2.5 text-[13px] rounded-lg border border-slate-200 bg-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-sm"
             />
           </div>
 
@@ -99,8 +103,8 @@ export default function SuperAdminBillingLogs() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-[13px] text-center">
-                      <button
-                        onClick={() => navigate(`/masters/organizations/${log.id}`)}
+                      <button 
+                        onClick={() => navigate(`/super-admin/billing/${log.id}/log`)}
                         className="text-indigo-600 hover:text-indigo-800 font-medium transition-colors"
                       >
                         View
@@ -108,13 +112,6 @@ export default function SuperAdminBillingLogs() {
                     </td>
                   </tr>
                 ))}
-                {filteredLogs.length === 0 && (
-                  <tr>
-                    <td colSpan={8} className="px-6 py-12 text-center text-slate-500 text-sm">
-                      No organizations found.
-                    </td>
-                  </tr>
-                )}
               </tbody>
             </table>
           </div>

@@ -14,8 +14,9 @@ import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { 
   Search, Plus, Edit, Trash2, Shield, Users, Check, X,
-  ChevronRight, UserCircle2, Save, KeyRound, ShieldAlert
+  ChevronRight, UserCircle2, Save, KeyRound, ShieldAlert, Building
 } from "lucide-react";
+import DepartmentPage from "../masters/DepartmentPage";
 
 const CATEGORIES = [
   { id: "dashboard", label: "Dashboard", keys: ["core:dashboard"] },
@@ -36,7 +37,7 @@ type ActionKey = typeof ACTIONS[number];
 export default function UsersRolesPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [tab, setTab] = useState<"roles" | "users" | "permissions" | "pending">("roles");
+  const [tab, setTab] = useState<"roles" | "users" | "permissions" | "pending" | "departments">("roles");
   const [searchQuery, setSearchQuery] = useState("");
 
   // Role form states for switches
@@ -348,7 +349,9 @@ export default function UsersRolesPage() {
     <MainLayout>
       <div className="surface w-full">
         
+
         {/* ── Page Header ─────────────────────────────────────────── */}
+        {tab !== "departments" && (
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Users & Roles</h1>
@@ -378,6 +381,7 @@ export default function UsersRolesPage() {
             )}
           </div>
         </div>
+        )}
 
         {/* ── Tab Navigation + Search ──────────────────────────────── */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
@@ -440,6 +444,25 @@ export default function UsersRolesPage() {
                 )}
               </button>
             )}
+
+            <button
+              onClick={() => { setTab("departments"); setSearchQuery(""); }}
+              className={`relative flex items-center gap-2.5 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
+                tab === "departments"
+                  ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm shadow-slate-200 dark:shadow-slate-950"
+                  : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+              }`}
+            >
+              <Building className="h-4 w-4 shrink-0" />
+              <span>Departments</span>
+              <span className={`min-w-[22px] h-[22px] px-1.5 rounded-full text-[11px] font-bold flex items-center justify-center transition-colors ${
+                tab === "departments"
+                  ? "bg-blue-600 text-white"
+                  : "bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400"
+              }`}>
+                {departments.length}
+              </span>
+            </button>
           </div>
 
           {/* Search */}
@@ -458,6 +481,13 @@ export default function UsersRolesPage() {
 
 
         {/* Tab contents */}
+
+        {/* Departments Tab */}
+        {tab === "departments" && (
+          <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 ease-out mt-6">
+            <DepartmentPage />
+          </div>
+        )}
 
         {/* Roles Tab */}
         {tab === "roles" && (

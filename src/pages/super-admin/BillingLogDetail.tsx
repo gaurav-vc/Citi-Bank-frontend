@@ -1,46 +1,46 @@
 import React, { useEffect, useState } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { ArrowLeft, CheckCircle2, Clock, XCircle, FileText, User } from 'lucide-react';
+import { Download, ArrowLeft } from 'lucide-react';
+import { format } from 'date-fns';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 
-interface WorkflowHistoryItem {
-  action: string;
-  user: string;
-  user_name: string;
-  role: string;
-  timestamp: string;
-  comments: string;
-  decision?: string;
+interface InvoiceHistory {
+  invoice_number: string;
+  billing_date: string;
+  due_date: string;
+  amount: number;
+  status: string;
 }
 
-interface BillingDetail {
-  id: number;
-  invoice_number: string;
-  vendor_name: string;
-  amount: number;
-  tax_amount: number;
-  total_amount: number;
-  status: string;
-  created_at: string;
-  workflow_history: WorkflowHistoryItem[];
-  current_approver: string | null;
-  approval_level: number;
+interface BillingDashboardData {
+  organization_name: string;
+  next_billing_amount: number;
+  next_billing_date: string | null;
+  current_balance_due: number;
+  billing_contact: {
+    email: string;
+    phone: string;
+  };
+  tax_id: string;
+  billing_address: string;
+  invoice_history: InvoiceHistory[];
 }
 
 export default function SuperAdminBillingLogDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [detail, setDetail] = useState<BillingDetail | null>(null);
+  const [data, setData] = useState<BillingDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'All' | 'Paid' | 'Overdue'>('All');
 
   useEffect(() => {
     if (id) {
-      fetchDetail();
+      fetchDashboardData();
     }
   }, [id]);
 
-  const fetchDetail = async () => {
+  const fetchDashboardData = async () => {
     try {
       const token = localStorage.getItem('campusspend_token');
       const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
@@ -48,136 +48,229 @@ export default function SuperAdminBillingLogDetail() {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
-        const data = await res.json();
-        setDetail(data);
+        const result = await res.json();
+        setData(result);
       }
     } catch (error) {
-      console.error("Failed to fetch billing log detail:", error);
+      console.error("Failed to fetch billing dashboard:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  const getStatusIcon = (status: string, action: string = '') => {
-    const s = status.toLowerCase();
-    const a = action.toLowerCase();
-    
-    if (a === 'rejected' || s.includes('reject')) return <XCircle className="h-5 w-5 text-red-500" />;
-    if (a === 'approved' || s.includes('approved') || s.includes('paid')) return <CheckCircle2 className="h-5 w-5 text-green-500" />;
-    return <Clock className="h-5 w-5 text-amber-500" />;
-  };
-
   if (loading) {
-    return <div className="p-6 text-muted-foreground flex items-center justify-center min-h-screen">Loading log details...</div>;
+    return (
+      <MainLayout>
+        <div className="p-6 text-slate-500 flex items-center justify-center min-h-screen">Loading billing data...</div>
+      </MainLayout>
+    );
   }
 
-  if (!detail) {
-    return <div className="p-6 text-destructive flex items-center justify-center min-h-screen">Failed to load log details.</div>;
+  if (!data) {
+    return (
+      <MainLayout>
+        <div className="p-6 text-red-500 flex items-center justify-center min-h-screen">Failed to load billing dashboard.</div>
+      </MainLayout>
+    );
   }
+
+  const filteredInvoices = data.invoice_history.filter((inv) => {
+    const matchSearch = inv.invoice_number.toLowerCase().includes(search.toLowerCase());
+    const matchStatus = statusFilter === 'All' ? true : inv.status === statusFilter;
+    return matchSearch && matchStatus;
+  });
 
   return (
     <MainLayout>
-      <div className="p-6 space-y-6 bg-slate-50 min-h-screen">
-      <div className="flex items-center gap-4">
-        <button 
-          onClick={() => navigate('/super-admin/billing')}
-          className="p-2 hover:bg-slate-200 rounded-full transition-colors"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </button>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Invoice Log: {detail.invoice_number}</h1>
-          <p className="text-muted-foreground">Audit trail and billing details for this transaction.</p>
+      <div className="p-8 min-h-screen bg-slate-50 font-sans text-slate-900">
+        {/* Header section */}
+        <div className="flex justify-between items-start mb-6">
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => navigate('/super-admin/billing')}
+              className="p-2 hover:bg-slate-200 rounded-full transition-colors"
+              title="Back to Organizations"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+            <div>
+              <div className="text-sm text-slate-500 mb-1">
+                Organization &gt; Billing &amp; Subscriptions
+              </div>
+              <h1 className="text-3xl font-bold tracking-tight">{data.organization_name}</h1>
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <button className="px-4 py-2 border border-slate-300 bg-white rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors shadow-sm">
+              Download CSV
+            </button>
+            <button className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm">
+              Pay Now
+            </button>
+          </div>
         </div>
-      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Invoice Summary */}
-        <div className="lg:col-span-1 space-y-6">
-          <Card className="shadow-sm border-0 bg-white">
-            <CardHeader>
-              <CardTitle className="text-lg">Invoice Summary</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+        {/* Top Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-center">
+            <div className="text-[10px] font-bold text-indigo-600 bg-indigo-50 inline-block px-1.5 py-0.5 rounded w-max mb-3 tracking-wider">
+              NB
+            </div>
+            <div className="text-[13px] font-medium text-slate-500 mb-2 flex items-center gap-2">
+              Next Billing Amount
+            </div>
+            <div className="text-3xl font-bold mb-3 tracking-tight">
+              ${data.next_billing_amount.toFixed(2)}
+            </div>
+            <div className="text-xs text-slate-500 font-medium">
+              Estimated for next cycle · Renews on {data.next_billing_date ? format(new Date(data.next_billing_date), 'dd MMM yyyy') : '-'}
+            </div>
+          </div>
+          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-center">
+            <div className="text-[10px] font-bold text-purple-600 bg-purple-50 inline-block px-1.5 py-0.5 rounded w-max mb-3 tracking-wider">
+              CD
+            </div>
+            <div className="text-[13px] font-medium text-slate-500 mb-2 flex items-center gap-2">
+              Current Balance Due
+            </div>
+            <div className="text-3xl font-bold mb-3 tracking-tight">
+              ${data.current_balance_due.toFixed(2)}
+            </div>
+            <div className="text-xs text-slate-500 font-medium">
+              {data.current_balance_due > 0 ? 'Payment required' : 'Everything looks good!'}
+            </div>
+          </div>
+        </div>
+
+        {/* Invoice History */}
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm mb-8 overflow-hidden">
+          <div className="p-6 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-[18px] font-bold">Invoice History</h2>
+              <p className="text-[13px] text-slate-500 mt-1">Review and download your recent billing statements</p>
+            </div>
+            <div className="flex gap-4 items-center">
+              <input
+                type="text"
+                placeholder="Search invoice #"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="px-4 py-2 text-sm border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all w-64 shadow-sm placeholder:text-slate-400"
+              />
+              <div className="flex bg-slate-100 p-1 rounded-lg">
+                {(['All', 'Paid', 'Overdue'] as const).map((opt) => (
+                  <button
+                    key={opt}
+                    onClick={() => setStatusFilter(opt)}
+                    className={`px-4 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                      statusFilter === opt
+                        ? 'bg-indigo-600 text-white shadow-sm'
+                        : 'text-slate-500 hover:text-slate-900'
+                    }`}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="border-b border-slate-100">
+                  <th className="px-6 py-4 text-xs font-semibold text-slate-700">Invoice #</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-slate-700">Billing Date</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-slate-700">Due Date</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-slate-700">Amount</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-slate-700">Status</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-slate-700">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {filteredInvoices.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-8 text-center text-slate-500 text-sm">
+                      No invoices found.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredInvoices.map((inv) => (
+                    <tr key={inv.invoice_number} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="px-6 py-4 text-[13px] font-medium text-slate-700">{inv.invoice_number}</td>
+                      <td className="px-6 py-4 text-[13px] text-slate-600">{format(new Date(inv.billing_date), 'dd MMM yyyy')}</td>
+                      <td className="px-6 py-4 text-[13px] text-slate-600">{format(new Date(inv.due_date), 'dd MMM yyyy')}</td>
+                      <td className="px-6 py-4 text-[13px] text-slate-600">${inv.amount.toFixed(2)}</td>
+                      <td className="px-6 py-4">
+                        <span
+                          className={`inline-flex px-3 py-1 rounded-full text-[11px] font-semibold ${
+                            inv.status.toLowerCase() === 'paid'
+                              ? 'bg-indigo-50 text-indigo-600'
+                              : 'bg-slate-100 text-slate-500' // Using gray for overdue/other matching screenshot
+                          }`}
+                        >
+                          {inv.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <button className="text-[13px] font-medium text-indigo-600 hover:text-indigo-800 transition-colors">
+                          Download
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Bottom Cards */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+            <div>
+              <h3 className="text-[18px] font-bold mb-1">Billing Information</h3>
+              <p className="text-[13px] text-slate-500 mb-6">Tax details and invoice contact information</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
-                <p className="text-sm text-muted-foreground">Vendor</p>
-                <p className="font-medium text-base">{detail.vendor_name}</p>
+                <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2">Billing Contact</div>
+                <div className="text-[13px] font-medium text-slate-900 mb-1">{data.billing_contact.email}</div>
+                <div className="text-[13px] text-slate-500">{data.billing_contact.phone}</div>
+                <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mt-6 mb-2">Tax ID / VAT</div>
+                <div className="text-[13px] text-slate-900">{data.tax_id}</div>
               </div>
-              <div className="pt-2 border-t">
-                <p className="text-sm text-muted-foreground">Base Amount</p>
-                <p className="font-medium">Rs. {detail.amount.toLocaleString('en-IN')}</p>
+              <div className="md:col-span-2">
+                <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2">Billing Address</div>
+                <div className="text-[13px] text-slate-900 mb-4 max-w-[200px] leading-relaxed">
+                  {data.billing_address || 'No address provided'}
+                </div>
+                <Link to={`/masters/organizations/${id}/edit`} className="text-[13px] font-medium text-indigo-600 hover:text-indigo-800 transition-colors">
+                  Edit Billing Details
+                </Link>
               </div>
-              <div className="pt-2 border-t">
-                <p className="text-sm text-muted-foreground">Tax Amount</p>
-                <p className="font-medium">Rs. {detail.tax_amount.toLocaleString('en-IN')}</p>
-              </div>
-              <div className="pt-2 border-t">
-                <p className="text-sm text-muted-foreground">Total Amount</p>
-                <p className="font-bold text-lg text-blue-600">Rs. {detail.total_amount.toLocaleString('en-IN')}</p>
-              </div>
-              <div className="pt-2 border-t">
-                <p className="text-sm text-muted-foreground mb-1">Current Status</p>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-sm font-medium bg-slate-100 border">
-                  {getStatusIcon(detail.status)}
-                  {detail.status.replace(/_/g, ' ').toUpperCase()}
-                </span>
-              </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
+          
+          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+            <h3 className="text-[18px] font-bold mb-4">Billing Help</h3>
+            <div className="space-y-3">
+              <button className="w-full text-left px-4 py-3 border border-slate-200 rounded-lg text-[13px] text-slate-700 hover:bg-slate-50 transition-colors shadow-sm">
+                How do I change my billing cycle?
+              </button>
+              <button className="w-full text-left px-4 py-3 border border-slate-200 rounded-lg text-[13px] text-slate-700 hover:bg-slate-50 transition-colors shadow-sm">
+                When are invoices generated?
+              </button>
+              <button className="w-full text-left px-4 py-3 border border-slate-200 rounded-lg text-[13px] text-slate-700 hover:bg-slate-50 transition-colors shadow-sm">
+                Accepted payment methods?
+              </button>
+            </div>
+            <button className="w-full mt-4 px-4 py-3 bg-white border border-slate-200 rounded-lg text-[13px] font-medium text-slate-700 hover:bg-slate-50 transition-colors shadow-sm text-center">
+              Visit Help Center
+            </button>
+          </div>
         </div>
 
-        {/* Audit Trail */}
-        <div className="lg:col-span-2">
-          <Card className="shadow-sm border-0 bg-white h-full">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <FileText className="h-5 w-5 text-muted-foreground" />
-                Workflow Audit Trail
-              </CardTitle>
-              <CardDescription>Chronological log of approvals and actions.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {detail.workflow_history && detail.workflow_history.length > 0 ? (
-                <div className="space-y-6 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-300 before:to-transparent">
-                  {detail.workflow_history.map((history, index) => (
-                    <div key={index} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
-                      {/* Icon */}
-                      <div className="flex items-center justify-center w-10 h-10 rounded-full border border-white bg-slate-100 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10">
-                         {getStatusIcon('unknown', history.action)}
-                      </div>
-                      
-                      {/* Card */}
-                      <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-4 rounded-lg border border-slate-200 bg-white shadow-sm">
-                        <div className="flex items-center justify-between space-x-2 mb-1">
-                          <div className="font-bold text-slate-900">{history.decision || history.action}</div>
-                          <time className="text-xs font-medium text-amber-500">
-                            {new Date(history.timestamp).toLocaleString()}
-                          </time>
-                        </div>
-                        <div className="text-slate-500 text-sm mb-2">{history.comments}</div>
-                        <div className="flex items-center gap-2 mt-3 pt-3 border-t text-xs text-slate-500 font-medium">
-                          <User className="h-3.5 w-3.5" />
-                          <span>{history.user_name || history.user}</span>
-                          <span className="px-1.5 py-0.5 bg-slate-100 rounded text-[10px] ml-auto uppercase tracking-wider">
-                            {history.role.replace(/_/g, ' ')}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="py-12 text-center text-muted-foreground">
-                  <Clock className="h-12 w-12 mx-auto mb-3 opacity-20" />
-                  <p>No audit trail records found for this invoice.</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
       </div>
     </MainLayout>
   );
 }
-

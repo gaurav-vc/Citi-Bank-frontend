@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft } from "lucide-react";
 import { api } from "@/lib/api";
 import { MainLayout } from "@/components/layout/MainLayout";
 import ModuleAccessPanel from "@/components/ModuleAccessPanel";
@@ -285,6 +286,15 @@ export default function AddSitePage() {
   return (
     <MainLayout>
       <section className="surface add-site-page">
+        <nav className="flex items-center gap-2 mb-6" aria-label="Breadcrumb">
+          <button 
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-1 text-slate-500 hover:text-slate-800 transition-colors font-medium"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            Back
+          </button>
+        </nav>
         <header className="add-org-header">
           <h1 className="text-3xl font-bold">
             {isEdit ? "Manage Site / Project" : "Add Site / Project"}

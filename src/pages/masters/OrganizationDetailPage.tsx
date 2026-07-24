@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, Organization } from "@/lib/api";
 import { MainLayout } from "@/components/layout/MainLayout";
+import { ArrowLeft } from "lucide-react";
 
 function formatAddress(org: Organization) {
   const parts = [org.zone, org.city, org.state, org.region, org.country].filter((p) => p && p !== "-");
@@ -180,12 +181,14 @@ export default function OrganizationDetailPage() {
   return (
     <MainLayout>
       <section className="surface org-detail-page">
-        <nav className="org-detail-breadcrumb" aria-label="Breadcrumb">
-          <Link to="/masters/organizations">Organizations</Link>
-          <span className="org-detail-breadcrumb-sep" aria-hidden="true">
-            /
-          </span>
-          <span className="org-detail-breadcrumb-current">{org.company_name || org.name}</span>
+        <nav className="flex items-center gap-2 mb-6" aria-label="Breadcrumb">
+          <button 
+            onClick={() => navigate("/masters/organizations")}
+            className="flex items-center gap-1 text-slate-500 hover:text-slate-800 transition-colors font-medium"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            Back to Organizations
+          </button>
         </nav>
 
         <header className="org-detail-hero">
@@ -499,45 +502,7 @@ export default function OrganizationDetailPage() {
               </p>
             </section>
 
-            <section className="panel org-detail-card">
-              <h2 className="org-detail-card-title">Primary contact</h2>
-              <div className="field org-detail-field-tight">
-                <label className="org-detail-inline-label" htmlFor="org-contact-email">
-                  Email
-                </label>
-                <input
-                  id="org-contact-email"
-                  className="filter-input org-detail-contact-input"
-                  type="email"
-                  value={contactEmailDraft}
-                  onChange={(e) => setContactEmailDraft(e.target.value)}
-                  placeholder="name@company.com"
-                />
-              </div>
-              <div className="field org-detail-field-tight">
-                <label className="org-detail-inline-label" htmlFor="org-contact-phone">
-                  Phone
-                </label>
-                <input
-                  id="org-contact-phone"
-                  className="filter-input org-detail-contact-input"
-                  type="tel"
-                  value={contactPhoneDraft}
-                  onChange={(e) => setContactPhoneDraft(e.target.value)}
-                  placeholder="+1 …"
-                />
-              </div>
-              <button
-                type="button"
-                className="primary-btn org-detail-save-contact"
-                onClick={saveContact}
-              >
-                Save contact
-              </button>
-              {contactHint ? (
-                <p className="org-detail-success-hint org-detail-contact-hint">{contactHint}</p>
-              ) : null}
-            </section>
+
 
             <section className="panel org-detail-card">
               <h2 className="org-detail-card-title">Audit &amp; metadata</h2>
