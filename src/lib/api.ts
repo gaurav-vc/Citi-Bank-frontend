@@ -79,7 +79,7 @@ export const api = {
     method: 'POST',
     body: JSON.stringify(data)
   }),
-  updateOrganization: (id: number | string, data: any) => request<any>(`/api/organizations/${id}/`, { method: 'PUT', body: JSON.stringify(data) }),
+  updateOrganization: (id: number | string, data: any) => request<any>(`/api/organizations/${id}/`, { method: 'PATCH', body: JSON.stringify(data) }),
   deleteOrganization: (id: number | string) => request<void>(`/api/organizations/${id}/`, { method: 'DELETE' }),
 
   // Sites

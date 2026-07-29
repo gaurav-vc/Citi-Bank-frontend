@@ -487,28 +487,30 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Reference Stats Grid */}
-        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {derivedStatsList.map((item) => {
-            const IconComponent = item.icon;
-            return (
-              <Card key={item.label} className="border border-border/50 bg-card shadow-sm p-6 hover:shadow-md transition-shadow duration-200">
-                <div className="flex items-start justify-between w-full">
-                  <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{item.label}</p>
-                  <div className="p-2.5 rounded-lg bg-primary/5 text-primary/70 shrink-0">
-                    <IconComponent className="h-5 w-5 stroke-[1.75]" />
+        {/* Reference Stats Grid (Super Admin Only) */}
+        {user?.role === 'super_admin' && (
+          <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {derivedStatsList.map((item) => {
+              const IconComponent = item.icon;
+              return (
+                <Card key={item.label} className="border border-border/50 bg-card shadow-sm p-6 hover:shadow-md transition-shadow duration-200">
+                  <div className="flex items-start justify-between w-full">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{item.label}</p>
+                    <div className="p-2.5 rounded-lg bg-primary/5 text-primary/70 shrink-0">
+                      <IconComponent className="h-5 w-5 stroke-[1.75]" />
+                    </div>
                   </div>
-                </div>
-                <div className="mt-4">
-                  <p className="text-2xl font-bold text-foreground font-manrope">{item.value}</p>
-                </div>
-                <div className="mt-2 text-xs font-semibold text-muted-foreground font-manrope">
-                  {item.desc}
-                </div>
-              </Card>
-            );
-          })}
-        </section>
+                  <div className="mt-4">
+                    <p className="text-2xl font-bold text-foreground font-manrope">{item.value}</p>
+                  </div>
+                  <div className="mt-2 text-xs font-semibold text-muted-foreground font-manrope">
+                    {item.desc}
+                  </div>
+                </Card>
+              );
+            })}
+          </section>
+        )}
 
         {/* Spend Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -632,54 +634,58 @@ export default function Dashboard() {
         </div>
 
         {/* Reference Row 1: Today's Upsale & Company Wise Site (WaveChart) */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card className="border border-border/50 bg-card shadow-sm p-4">
-            <CardHeader className="flex flex-row items-center justify-between p-2">
-              <CardTitle className="text-lg font-semibold">Today's Upsale</CardTitle>
-            </CardHeader>
-            <CardContent className="p-2">
-              {derivedUpsale.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No active sales recorded.</p>
-              ) : (
-                <ListRows items={derivedUpsale} />
-              )}
-            </CardContent>
-          </Card>
+        {user?.role === 'super_admin' && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card className="border border-border/50 bg-card shadow-sm p-4">
+              <CardHeader className="flex flex-row items-center justify-between p-2">
+                <CardTitle className="text-lg font-semibold">Today's Upsale</CardTitle>
+              </CardHeader>
+              <CardContent className="p-2">
+                {derivedUpsale.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No active sales recorded.</p>
+                ) : (
+                  <ListRows items={derivedUpsale} />
+                )}
+              </CardContent>
+            </Card>
 
-          <Card className="border border-border/50 bg-card shadow-sm p-4">
-            <CardHeader className="flex flex-row items-center justify-between p-2">
-              <CardTitle className="text-lg font-semibold">Company Wise Site</CardTitle>
-            </CardHeader>
-            <CardContent className="p-2">
-              {companyWiseSite.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No site allocations recorded.</p>
-              ) : (
-                <WaveChart items={companyWiseSite} colorClass="wave-gold" />
-              )}
-            </CardContent>
-          </Card>
-        </div>
+            <Card className="border border-border/50 bg-card shadow-sm p-4">
+              <CardHeader className="flex flex-row items-center justify-between p-2">
+                <CardTitle className="text-lg font-semibold">Company Wise Site</CardTitle>
+              </CardHeader>
+              <CardContent className="p-2">
+                {companyWiseSite.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No site allocations recorded.</p>
+                ) : (
+                  <WaveChart items={companyWiseSite} colorClass="wave-gold" />
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Reference Row 2: Module Wise Revenue & Module Wise Site (WaveChart) */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card className="border border-border/50 bg-card shadow-sm p-4">
-            <CardHeader className="flex flex-row items-center justify-between p-2">
-              <CardTitle className="text-lg font-semibold">Module Wise Revenue</CardTitle>
-            </CardHeader>
-            <CardContent className="p-2">
-              <ListRows items={derivedModuleRevenue} />
-            </CardContent>
-          </Card>
+        {user?.role === 'super_admin' && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card className="border border-border/50 bg-card shadow-sm p-4">
+              <CardHeader className="flex flex-row items-center justify-between p-2">
+                <CardTitle className="text-lg font-semibold">Module Wise Revenue</CardTitle>
+              </CardHeader>
+              <CardContent className="p-2">
+                <ListRows items={derivedModuleRevenue} />
+              </CardContent>
+            </Card>
 
-          <Card className="border border-border/50 bg-card shadow-sm p-4">
-            <CardHeader className="flex flex-row items-center justify-between p-2">
-              <CardTitle className="text-lg font-semibold">Module Wise Site</CardTitle>
-            </CardHeader>
-            <CardContent className="p-2">
-              <WaveChart items={moduleWiseSite} colorClass="wave-teal" />
-            </CardContent>
-          </Card>
-        </div>
+            <Card className="border border-border/50 bg-card shadow-sm p-4">
+              <CardHeader className="flex flex-row items-center justify-between p-2">
+                <CardTitle className="text-lg font-semibold">Module Wise Site</CardTitle>
+              </CardHeader>
+              <CardContent className="p-2">
+                <WaveChart items={moduleWiseSite} colorClass="wave-teal" />
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Spend Analysis Drilldown */}
         {drilldownData.length > 0 && (

@@ -57,9 +57,12 @@ export default function AddOrganizationPage() {
   const isEdit = Boolean(orgId);
   const queryClient = useQueryClient();
 
-  const [organizationName, setOrganizationName] = useState("Acme Corporation");
-  const [companyName, setCompanyName] = useState("Acme Inc.");
-  const [entityName, setEntityName] = useState("Acme Global Entity");
+  const [organizationName, setOrganizationName] = useState("");
+  const [companyName, setCompanyName] = useState("");
+  const [entityName, setEntityName] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
+  const [contactPhone, setContactPhone] = useState("");
+  const [gstNumber, setGstNumber] = useState("");
   const [solutionType, setSolutionType] = useState("");
   const [solutionFor, setSolutionFor] = useState("");
   const [billingTerm, setBillingTerm] = useState("");
@@ -91,13 +94,13 @@ export default function AddOrganizationPage() {
   const cities = region
     ? Object.keys(countryData?.[region]?.[stateName] || {})
     : Object.values(countryData || {}).flatMap((regionNode: any) =>
-        stateName in (regionNode || {}) ? Object.keys(regionNode[stateName] || {}) : []
-      );
+      stateName in (regionNode || {}) ? Object.keys(regionNode[stateName] || {}) : []
+    );
   const zones = region
     ? countryData?.[region]?.[stateName]?.[city] || []
     : (Object.values(countryData || {}).find(
-        (node: any) => stateName in (node || {}) && city in (node[stateName] || {})
-      )?.[stateName]?.[city] || []);
+      (node: any) => stateName in (node || {}) && city in (node[stateName] || {})
+    )?.[stateName]?.[city] || []);
 
   useEffect(() => {
     if (!billingStartDate) {
@@ -130,6 +133,9 @@ export default function AddOrganizationPage() {
       setOrganizationName(orgData.name || "");
       setCompanyName(orgData.company_name || "");
       setEntityName(orgData.entity_name || "");
+      setContactEmail(orgData.contact_email || "");
+      setContactPhone(orgData.contact_phone || "");
+      setGstNumber(orgData.gst_number || orgData.pan_number || "");
       setSolutionType(orgData.organization_type || "");
       setSolutionFor(orgData.industry || "");
       setBillingTerm(orgData.billing_term || "");
@@ -161,7 +167,11 @@ export default function AddOrganizationPage() {
     onSuccess: (savedOrg) => {
       queryClient.invalidateQueries({ queryKey: ["organizations"] });
       queryClient.invalidateQueries({ queryKey: ["organization", orgId] });
-      navigate(`/masters/organizations/${savedOrg.id}`);
+      if (isEdit) {
+        navigate(-1);
+      } else {
+        navigate(`/masters/organizations/${savedOrg.id}`);
+      }
     },
     onError: (err: any) => {
       window.alert(`Unable to save organization: ${err.message}`);
@@ -178,6 +188,9 @@ export default function AddOrganizationPage() {
       name: organizationName.trim(),
       company_name: companyName.trim(),
       entity_name: entityName.trim(),
+      contact_email: contactEmail.trim(),
+      contact_phone: contactPhone.trim(),
+      gst_number: gstNumber.trim(),
       organization_type: solutionType,
       industry: solutionFor,
       billing_term: billingTerm,
@@ -216,7 +229,7 @@ export default function AddOrganizationPage() {
     <MainLayout>
       <section className="surface add-org-page">
         <nav className="flex items-center gap-2 mb-6" aria-label="Breadcrumb">
-          <button 
+          <button
             onClick={() => navigate(-1)}
             className="flex items-center gap-1 text-slate-500 hover:text-slate-800 transition-colors font-medium"
           >
@@ -270,6 +283,38 @@ export default function AddOrganizationPage() {
                 value={entityName}
                 onChange={(e) => setEntityName(e.target.value)}
                 placeholder="Enter your entity"
+              />
+            </div>
+          </div>
+
+          <h3 className="add-org-section-title">Contact & Tax Details</h3>
+          <div className="add-org-grid three">
+            <div className="field">
+              <label>Contact Email</label>
+              <input
+                className="filter-input"
+                type="email"
+                value={contactEmail}
+                onChange={(e) => setContactEmail(e.target.value)}
+                placeholder="billing@example.com"
+              />
+            </div>
+            <div className="field">
+              <label>Contact Phone</label>
+              <input
+                className="filter-input"
+                value={contactPhone}
+                onChange={(e) => setContactPhone(e.target.value)}
+                placeholder="+1 234 567 890"
+              />
+            </div>
+            <div className="field">
+              <label>GST Number / PAN</label>
+              <input
+                className="filter-input"
+                value={gstNumber}
+                onChange={(e) => setGstNumber(e.target.value)}
+                placeholder="Enter Tax ID"
               />
             </div>
           </div>

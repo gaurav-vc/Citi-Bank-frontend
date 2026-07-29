@@ -43,6 +43,9 @@ interface RFQ {
   recommendedVendorId?: string;
   recommendationComments?: string;
   workflow_history?: any[];
+  bidding_type?: string;
+  reserve_price?: number;
+  auction_end_time?: string;
 }
 
 interface VendorQuote {
@@ -61,6 +64,8 @@ interface VendorQuote {
   remarks?: string;
   quotationId?: string;
   complianceStatus?: string;
+  vendor_id?: string;
+  vendor_name?: string;
 }
 
 const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; icon: any }> = {
@@ -741,16 +746,40 @@ function BidComparisonView({ rfqs, onSelectRFQ }: { rfqs: RFQ[]; onSelectRFQ: (r
     </div>
   );
 }
-
 function RFQDetailView({ rfq, onActionComplete }: { rfq: RFQ; onActionComplete: () => void }) {
   const { token, user } = useAuth();
   const { timeline, fetchTimeline, actionWorkflowStep } = useWorkflow();
   const [approvalComments, setApprovalComments] = useState('');
   const [justification, setJustification] = useState('');
-  const [decision, setDecision] = useState('Approve');
+  const [decision, setDecision] = useState('Recommend');
   const [isHistoryExpanded, setIsHistoryExpanded] = useState(false);
   const [processingApproval, setProcessingApproval] = useState(false);
   const [activeTab, setActiveTab] = useState('evaluation');
+
+  // Live Auction State
+  const [liveAuction, setLiveAuction] = useState<any>(null);
+  
+  useEffect(() => {
+    let interval: any;
+    if (rfq && ['published', 'bidding_open', 'bidding', 'PROCUREMENT_MANAGER_REVIEW'].includes(rfq.status) && (rfq.bidding_type === 'reverse_auction' || rfq.bidding_type === 'upward_auction')) {
+      const fetchLiveBids = async () => {
+        try {
+          const v = rfq.vendors.find((vd: any) => vd.vendorName?.toLowerCase() === user?.name?.toLowerCase() || vd.vendor_name?.toLowerCase() === user?.name?.toLowerCase() || (user?.email && user.email === 'ayush27shaw@gmail.com'));
+          const vId = v ? (v.vendorId || v.vendor_id) : user?.id;
+          const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/rfqs/${rfq.id}/live-bids/?vendor_id=${vId || ''}`, {
+            headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+          });
+          if (res.ok) {
+            const data = await res.json();
+            setLiveAuction(data);
+          }
+        } catch(e) {}
+      };
+      fetchLiveBids();
+      interval = setInterval(fetchLiveBids, 5000);
+    }
+    return () => clearInterval(interval);
+  }, [rfq, user, token]);
 
   // Edit Score States
   const [editingQuoteId, setEditingQuoteId] = useState<string | null>(null);
@@ -1201,17 +1230,21 @@ function RFQDetailView({ rfq, onActionComplete }: { rfq: RFQ; onActionComplete: 
 
       {/* Detail Dialog Navigation Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="evaluation">Quotation Evaluation</TabsTrigger>
-          <TabsTrigger value="recommendation">System Recommendation</TabsTrigger>
-          <TabsTrigger value="history">Remarks & Audit History</TabsTrigger>
-        </TabsList>
+        {user?.role !== 'vendor' && (
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="evaluation">Quotation Evaluation</TabsTrigger>
+            <TabsTrigger value="recommendation">System Recommendation</TabsTrigger>
+            <TabsTrigger value="history">Remarks & Audit History</TabsTrigger>
+          </TabsList>
+        )}
 
         {/* Tab 1: Quotation Evaluation & Comparison Matrix */}
         <TabsContent value="evaluation" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Vendor Comparison Matrix</CardTitle>
+          {user?.role !== 'vendor' && (
+            <>
+              <Card>
+              <CardHeader>
+                <CardTitle>Vendor Comparison Matrix</CardTitle>
               <CardDescription>Comparison of all received quotation details. Automatically ranked by price.</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
@@ -1357,16 +1390,41 @@ function RFQDetailView({ rfq, onActionComplete }: { rfq: RFQ; onActionComplete: 
               </DialogContent>
             </Dialog>
           )}
+            </>
+          )}
 
           {/* User Specific Quotation Response Form (For Bidding Vendors) */}
           {user?.role === 'vendor' && (
-            <Card>
+            <Card className={['reverse_auction', 'upward_auction'].includes(rfq.bidding_type) ? "border-blue-500 shadow-md" : ""}>
               <CardHeader>
                 <CardTitle>Your Quotation Details</CardTitle>
                 <CardDescription>Submit or view details of your quotation response for this tender</CardDescription>
+                
+                {liveAuction && (
+                  <div className="mt-4 p-4 rounded-lg bg-blue-50 border border-blue-200 dark:bg-blue-900/20 dark:border-blue-800">
+                    <h3 className="font-bold flex items-center text-blue-800 dark:text-blue-300 gap-2 mb-2">
+                      <div className="h-2 w-2 bg-red-500 rounded-full animate-pulse" />
+                      Live {rfq.bidding_type === 'reverse_auction' ? 'Reverse' : 'Upward'} Auction
+                    </h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-white dark:bg-slate-800 p-3 rounded-md shadow-sm">
+                        <p className="text-xs text-muted-foreground uppercase font-semibold">Your Current Rank</p>
+                        <p className="text-2xl font-bold text-foreground">
+                          {liveAuction.user_rank ? `#${liveAuction.user_rank}` : 'Not Ranked'}
+                        </p>
+                      </div>
+                      <div className="bg-white dark:bg-slate-800 p-3 rounded-md shadow-sm">
+                        <p className="text-xs text-muted-foreground uppercase font-semibold">Current {rfq.bidding_type === 'reverse_auction' ? 'Lowest' : 'Highest'} Bid</p>
+                        <p className="text-2xl font-bold text-emerald-600">
+                          {liveAuction.current_best ? `₹${liveAuction.current_best.toLocaleString('en-IN')}` : 'No Bids Yet'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </CardHeader>
               <CardContent>
-                {userVendorQuote?.submitted ? (
+                {userVendorQuote?.submitted && !['reverse_auction', 'upward_auction'].includes(rfq.bidding_type) ? (
                   <div className="space-y-4">
                     <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-lg text-emerald-800 dark:text-emerald-300">
                       <p className="font-bold flex items-center gap-2">
@@ -1395,6 +1453,14 @@ function RFQDetailView({ rfq, onActionComplete }: { rfq: RFQ; onActionComplete: 
                   </div>
                 ) : (
                   <div className="space-y-4">
+                    {userVendorQuote?.submitted && ['reverse_auction', 'upward_auction'].includes(rfq.bidding_type) && (
+                      <div className="p-3 mb-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg text-yellow-800 dark:text-yellow-300">
+                        <p className="font-semibold text-sm flex items-center gap-2">
+                          <CheckCircle className="h-4 w-4" />
+                          You have already submitted a bid of ₹{userVendorQuote.quoteAmount.toLocaleString('en-IN')}. You can submit a new bid to improve your ranking!
+                        </p>
+                      </div>
+                    )}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>Base Cost (₹) *</Label>
@@ -1452,7 +1518,7 @@ function RFQDetailView({ rfq, onActionComplete }: { rfq: RFQ; onActionComplete: 
                       disabled={submittingQuote} 
                       className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold"
                     >
-                      {submittingQuote ? 'Submitting Bid...' : 'Submit Official Quote'}
+                      {submittingQuote ? 'Submitting Bid...' : (userVendorQuote?.submitted ? 'Submit Revised Quote' : 'Submit Official Quote')}
                     </Button>
                   </div>
                 )}
@@ -1520,10 +1586,12 @@ function RFQDetailView({ rfq, onActionComplete }: { rfq: RFQ; onActionComplete: 
                             <RadioGroupItem value="Reject" id="r-reject" />
                             <Label htmlFor="r-reject" className="cursor-pointer font-medium text-destructive">Reject</Label>
                           </div>
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="Send Back" id="r-sendback" />
-                            <Label htmlFor="r-sendback" className="cursor-pointer font-medium text-yellow-600 dark:text-yellow-400">Send Back</Label>
-                          </div>
+                          {timeline?.steps && timeline.steps.findIndex(s => s.status === 'pending' && s.assigned_role_name === user?.role) > 0 && (
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="Send Back" id="r-sendback" />
+                              <Label htmlFor="r-sendback" className="cursor-pointer font-medium text-yellow-600 dark:text-yellow-400">Send Back</Label>
+                            </div>
+                          )}
                         </RadioGroup>
                       </div>
 
@@ -1792,6 +1860,8 @@ function CreateRFQForm({ initialIndentId, onClose }: { initialIndentId?: string;
   const [indents, setIndents] = useState<any[]>([]);
   const [linkedPR, setLinkedPR] = useState('');
   const [dbVendors, setDbVendors] = useState<any[]>([]);
+  const [biddingType, setBiddingType] = useState('standard');
+  const [reservePrice, setReservePrice] = useState('');
 
   const activeCategoryVendors = (() => {
     return dbVendors.filter(v => 
@@ -1876,6 +1946,9 @@ function CreateRFQForm({ initialIndentId, onClose }: { initialIndentId?: string;
           linked_pr: linkedPR || null,
           estimated_value: parseFloat(estimatedValue) || 0.00,
           bid_due_date: bidDueDate,
+          bidding_type: biddingType,
+          reserve_price: reservePrice ? parseFloat(reservePrice) : null,
+          auction_end_time: bidDueDate ? new Date(`${bidDueDate}T23:59:59`).toISOString() : null,
           vendors: invitedVendors,
           created_date: new Date().toISOString().split('T')[0]
         })
@@ -1988,6 +2061,46 @@ function CreateRFQForm({ initialIndentId, onClose }: { initialIndentId?: string;
           <Label htmlFor="bidDueDate">Bid Due Date *</Label>
           <Input id="bidDueDate" type="date" value={bidDueDate} onChange={(e) => setBidDueDate(e.target.value)} />
         </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="biddingType">Bidding Strategy *</Label>
+          <Select value={biddingType} onValueChange={setBiddingType}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select bidding type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="standard">Standard Bidding</SelectItem>
+              <SelectItem value="minimum_bid">Minimum Bid (Reserve Price Capped)</SelectItem>
+              <SelectItem value="reverse_auction">Reverse Auction (Lowest Wins)</SelectItem>
+              <SelectItem value="upward_auction">Upward Auction (Highest Wins)</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground mt-1">
+            {biddingType === 'standard' && "Vendors submit single closed bids."}
+            {biddingType === 'minimum_bid' && "Vendors can't bid above the Reserve Price."}
+            {biddingType === 'reverse_auction' && "Vendors compete to offer the lowest price. Real-time ranking/lowest price shown."}
+            {biddingType === 'upward_auction' && "Vendors compete to offer the highest price (usually for disposal)."}
+          </p>
+        </div>
+        
+        {biddingType !== 'standard' && (
+          <div className="space-y-2">
+            <Label htmlFor="reservePrice">
+              {biddingType === 'reverse_auction' ? 'Starting Price Ceiling (₹)' : 
+               biddingType === 'upward_auction' ? 'Starting Price Floor (₹)' : 
+               'Reserve Price Limit (₹)'} *
+            </Label>
+            <Input 
+              id="reservePrice" 
+              type="number" 
+              placeholder="Enter reserve price" 
+              value={reservePrice} 
+              onChange={(e) => setReservePrice(e.target.value)} 
+            />
+          </div>
+        )}
       </div>
 
       <div className="space-y-2">

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { api } from '@/api/client';
 import { requisitionsAPI } from '@/api/requisitions';
 import { commonAPI } from '@/api/common';
@@ -79,7 +79,28 @@ export default function CreateIndent() {
   const [requiredDate, setRequiredDate] = useState<Date>();
   const [justification, setJustification] = useState('');
   const [indentItems, setIndentItems] = useState<IndentItem[]>([]);
-  const [attachments, setAttachments] = useState<File[]>([]);
+  const [attachments, setAttachments] = useState<any[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    const file = e.target.files[0];
+    
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await api.post('upload/', formData);
+      setAttachments(prev => [...prev, { name: res.name, url: res.url, size: res.size }]);
+      toast({ title: 'Upload Successful', description: `${file.name} uploaded.` });
+    } catch (err: any) {
+      toast({ title: 'Upload Failed', description: err.message, variant: 'destructive' });
+    } finally {
+      setIsUploading(false);
+      if (e.target) e.target.value = '';
+    }
+  };
 
   const [indentsList, setIndentsList] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -344,6 +365,7 @@ export default function CreateIndent() {
         required_date: requiredDate ? requiredDate.toISOString().split('T')[0] : null,
         budget_head: budgetHead,
         justification,
+        attachments,
         status: 'draft',
       });
       toast({ title: 'Draft Saved', description: 'Your indent has been saved as draft.' });
@@ -386,6 +408,7 @@ export default function CreateIndent() {
         required_date: requiredDate ? requiredDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
         budget_head: budgetHead,
         justification,
+        attachments,
         status: 'submitted',
       });
 
@@ -431,7 +454,6 @@ export default function CreateIndent() {
         title: 'Inventory Check Submitted',
         description: 'Inventory availability status has been updated successfully.'
       });
-      setSelectedIndentDetail(null);
       fetchIndents();
     } catch (err: any) {
       toast({
@@ -670,6 +692,27 @@ export default function CreateIndent() {
                       {selectedIndentDetail.justification || 'No justification provided.'}
                     </p>
                   </div>
+
+                  {/* Attachments */}
+                  {selectedIndentDetail.attachments && selectedIndentDetail.attachments.length > 0 && (
+                    <div>
+                      <h3 className="font-semibold text-sm mb-2">Attachments</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedIndentDetail.attachments.map((file: any, index: number) => (
+                          <a 
+                            key={index} 
+                            href={file.url || '#'} 
+                            target="_blank" 
+                            rel="noreferrer" 
+                            className="text-sm text-primary bg-primary/5 p-2 px-3 rounded border border-primary/20 hover:bg-primary/10 flex items-center gap-2 transition-colors"
+                          >
+                            <FileText className="h-4 w-4" />
+                            {file.name || 'Attachment'}
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Items Table */}
                   <div>
@@ -1075,18 +1118,38 @@ export default function CreateIndent() {
                     <p className="text-sm text-muted-foreground mt-1">
                       BOQ, Scope documents, Images (PDF, DOC, XLS, JPG - Max 10MB each)
                     </p>
-                    <Button variant="outline" className="mt-4">
+                    <input 
+                      type="file" 
+                      ref={fileInputRef} 
+                      onChange={handleFileUpload} 
+                      className="hidden" 
+                    />
+                    <Button 
+                      variant="outline" 
+                      className="mt-4"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploading}
+                    >
                       <Upload className="h-4 w-4 mr-2" />
-                      Browse Files
+                      {isUploading ? 'Uploading...' : 'Browse Files'}
                     </Button>
                   </div>
                   {attachments.length > 0 && (
                     <div className="mt-4 space-y-2">
                       {attachments.map((file, index) => (
                         <div key={index} className="flex items-center justify-between p-2 bg-muted/50 rounded">
-                          <span className="text-sm">{file.name}</span>
-                          <Button variant="ghost" size="icon" className="h-6 w-6">
-                            <Trash2 className="h-3 w-3" />
+                          <span className="text-sm">
+                            <a href={file.url} target="_blank" rel="noreferrer" className="text-primary hover:underline">
+                              {file.name}
+                            </a>
+                          </span>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-6 w-6"
+                            onClick={() => setAttachments(attachments.filter((_, i) => i !== index))}
+                          >
+                            <Trash2 className="h-3 w-3 text-destructive" />
                           </Button>
                         </div>
                       ))}
