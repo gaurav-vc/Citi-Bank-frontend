@@ -658,6 +658,10 @@ function InvoiceDetails({ invoice, onUpdate }: { invoice: any; onUpdate: () => v
           <h4 className="font-bold text-sm text-slate-700 dark:text-slate-200 uppercase tracking-wide">Invoice Information</h4>
           <div className="space-y-2 text-sm p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800">
             <div className="flex justify-between">
+              <span className="text-muted-foreground">Invoice Number</span>
+              <span className="font-bold text-slate-800 dark:text-slate-200">{invoice.invoiceNumber || invoice.id}</span>
+            </div>
+            <div className="flex justify-between">
               <span className="text-muted-foreground">Invoice Date</span>
               <span>{new Date(invoice.invoiceDate).toLocaleDateString('en-IN')}</span>
             </div>
