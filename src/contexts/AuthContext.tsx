@@ -52,6 +52,12 @@ function validateTokenRoute(pathname: string, module: string, docId: string): bo
   if (module === 'payments') {
     return normPath.includes('/payments/proposals/') && normPath.includes(normDocId);
   }
+  if (module === 'orders') {
+    return normPath.includes('/orders/') && normPath.includes(normDocId);
+  }
+  if (module === 'indents' || module === 'requisition') {
+    return normPath.includes('/indents/') && normPath.includes(normDocId);
+  }
   return false;
 }
 
