@@ -370,7 +370,7 @@ export function Sidebar() {
     }
 
     if (role === 'site_keeper') {
-      return ['core:dashboard', 'procurement:indents_create', 'procurement:indents_my', 'procurement:indents'].includes(key);
+      return ['core:dashboard', 'procurement:indents_create', 'procurement:indents_my', 'procurement:indents', 'procurement:inspections', 'procurement:grn'].includes(key);
     }
 
     if (role === 'store_keeper') {
@@ -385,7 +385,7 @@ export function Sidebar() {
       return [
         'core:dashboard', 'procurement:indents_create', 'procurement:indents_my', 'procurement:approvals', 'procurement:indents',
         'procurement:inventory', 'procurement:inventory_master', 'procurement:inventory_view', 'procurement:inventory_issue', 'procurement:inventory_transfer', 'procurement:inventory_disposal', 'procurement:items',
-        'procurement:qc', 'procurement:qc_checklists'
+        'procurement:inspections', 'procurement:grn', 'procurement:qc', 'procurement:qc_checklists'
       ].includes(key);
     }
 

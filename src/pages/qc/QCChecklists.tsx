@@ -7,8 +7,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Textarea } from '@/components/ui/textarea';
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Clock,
   AlertTriangle,
@@ -475,8 +478,20 @@ export default function QualityInspection() {
                 <TableBody>
                   {filteredGrns.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center py-10 text-muted-foreground">
-                        No Quality Inspections found matching filters
+                      <TableCell colSpan={8} className="py-10">
+                        <div className="flex flex-col items-center max-w-xl mx-auto space-y-4">
+                          <Alert variant="destructive" className="bg-red-50 border-red-200">
+                            <AlertTriangle className="h-5 w-5 text-red-600" />
+                            <AlertTitle className="text-red-800 font-bold ml-2">Workflow Action Required</AlertTitle>
+                            <AlertDescription className="text-red-700 ml-2 mt-2">
+                              You cannot perform a Quality/Physical Inspection directly after a PO is approved.
+                              <br/><br/>
+                              <strong>Required Next Step:</strong> You must first go to <strong>Inventory &rarr; GRN Entry</strong> and click "+ Create GRN" to officially log that the delivery truck has arrived. 
+                              <br/><br/>
+                              Once the GRN is created, the items will automatically appear here on this page awaiting your physical inspection!
+                            </AlertDescription>
+                          </Alert>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ) : (

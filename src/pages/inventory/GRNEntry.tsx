@@ -19,6 +19,8 @@ import { downloadFile } from '@/utils/downloadFile';
 import { useAuth } from '@/contexts/AuthContext';
 import { useParams, useNavigate } from 'react-router-dom';
 import { inventoryAPI } from '@/api/inventory';
+import { ordersAPI } from '@/api/orders';
+import { api } from '@/api/client';
 
 interface GRN {
   id: string;
@@ -70,6 +72,13 @@ export default function GRNEntry() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
+
+  // For Create GRN Dialog
+  const [isCreateGrnOpen, setIsCreateGrnOpen] = useState(false);
+  const [approvedPOs, setApprovedPOs] = useState<any[]>([]);
+  const [isFetchingPOs, setIsFetchingPOs] = useState(false);
+  const [selectedPO, setSelectedPO] = useState<any | null>(null);
+  const { user } = useAuth();
 
   useEffect(() => {
     fetchGrns();
@@ -140,6 +149,54 @@ export default function GRNEntry() {
     }
   };
 
+  const fetchApprovedPOs = async () => {
+    setIsFetchingPOs(true);
+    try {
+      const data = await ordersAPI.getOrders('?status=approved');
+      setApprovedPOs(data);
+    } catch (err: any) {
+      toast({ title: 'Error fetching POs', description: err.message, variant: 'destructive' });
+    } finally {
+      setIsFetchingPOs(false);
+    }
+  };
+
+  const handleCreateGRNFromPO = async () => {
+    if (!selectedPO) return;
+    toast({ title: 'Creating GRN...', description: `Generating GRN from PO ${selectedPO.id}` });
+    try {
+      const poItems = selectedPO.items.map((item: any, index: number) => ({
+        item_id: `item-${index + 1}`,
+        item_name: item.itemName || 'Unknown Item',
+        ordered_qty: item.quantity || 0,
+        received_qty: item.quantity || 0,
+        accepted_qty: 0,
+        uom: item.uom || 'Nos'
+      }));
+
+      await api.post('grns/', {
+        id: `GRN-${selectedPO.id}-${Date.now().toString().slice(-4)}`,
+        po_id: selectedPO.id,
+        received_by: user ? user.name : 'System User',
+        received_date: new Date().toISOString().split('T')[0],
+        invoice_number: '',
+        invoice_date: null,
+        vendor_name: selectedPO.vendorName || '',
+        attachments: [],
+        remarks: 'Auto-generated GRN from PO',
+        status: 'pending',
+        items: poItems
+      });
+
+      toast({ title: 'Success', description: `GRN for PO ${selectedPO.id} created successfully.` });
+      setIsCreateGrnOpen(false);
+      setSelectedPO(null);
+      fetchGrns();
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    }
+  };
+
   const filteredGRNs = grns.filter(grn => {
     const matchesSearch = grn.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          grn.poId.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -181,6 +238,61 @@ export default function GRNEntry() {
             <p className="text-muted-foreground">Goods Receipt Note management and quality control</p>
           </div>
           <div className="flex gap-2">
+            <Dialog open={isCreateGrnOpen} onOpenChange={(open) => {
+              setIsCreateGrnOpen(open);
+              if (open) fetchApprovedPOs();
+              else setSelectedPO(null);
+            }}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create GRN
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-xl">
+                <DialogHeader>
+                  <DialogTitle>Create GRN from Purchase Order</DialogTitle>
+                  <DialogDescription>
+                    Select an approved Purchase Order to log the received goods.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label>Select Purchase Order</Label>
+                    <Select onValueChange={(val) => {
+                      const po = approvedPOs.find(p => p.id === val);
+                      setSelectedPO(po || null);
+                    }}>
+                      <SelectTrigger>
+                        <SelectValue placeholder={isFetchingPOs ? "Loading POs..." : "Select an approved PO"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {approvedPOs.map(po => (
+                          <SelectItem key={po.id} value={po.id}>
+                            {po.id} - {po.vendorName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  {selectedPO && (
+                    <div className="p-4 bg-muted/30 rounded-md border text-sm space-y-2">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div><span className="font-semibold text-muted-foreground">PO Date:</span> {selectedPO.startDate || 'N/A'}</div>
+                        <div><span className="font-semibold text-muted-foreground">Total Value:</span> {selectedPO.netValue || 0}</div>
+                        <div><span className="font-semibold text-muted-foreground">Items:</span> {selectedPO.items?.length || 0} items</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => setIsCreateGrnOpen(false)}>Cancel</Button>
+                  <Button onClick={handleCreateGRNFromPO} disabled={!selectedPO}>Create GRN</Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+
             <Button variant="outline" onClick={handleExport}>
               <Download className="h-4 w-4 mr-2" />
               Export
