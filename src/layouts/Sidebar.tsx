@@ -94,7 +94,6 @@ const iconMap: Record<string, React.ElementType> = {
   'superadmin:users': Users,
   'superadmin:permissions': ShieldCheck,
   'superadmin:billing': Receipt,
-  'procurement:payments': Wallet,
   'reports:dashboard': LayoutDashboard,
   'reports:reports': BarChart3,
   'reports:inventory_reports': FileText,
