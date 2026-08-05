@@ -45,7 +45,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Vendor } from '@/types';
 
-const categories = ['Housekeeping', 'HVAC', 'Electrical', 'Plumbing', 'Security', 'Landscaping', 'MEP Spares'];
+
 const vendorTypes = ['material', 'service', 'amc', 'soft_services'];
 const towers = ['Tower A', 'Tower B', 'Tower C'];
 
@@ -59,6 +59,8 @@ export default function VendorMaster() {
   const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
   const [editingVendor, setEditingVendor] = useState<any | null>(null);
 
+  const dynamicCategories = Array.from(new Set(vendors.map(v => v.category).filter(Boolean)));
+
   useEffect(() => {
     fetchVendors();
   }, []);
@@ -66,7 +68,7 @@ export default function VendorMaster() {
   const fetchVendors = async () => {
     try {
       const token = localStorage.getItem('campusspend_token');
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/vendors/`, {
+      const res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/vendors/`, {
         headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
       if (res.ok) {
@@ -103,12 +105,25 @@ export default function VendorMaster() {
 
   const filteredVendors = vendors.filter((vendor) => {
     const matchesSearch =
-      vendor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      vendor.id.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || vendor.status === statusFilter;
-    const matchesCategory = categoryFilter === 'all' || vendor.category === categoryFilter;
+      (vendor.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      String(vendor.id || '').toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || (vendor.status || '').toLowerCase() === statusFilter.toLowerCase();
+    const matchesCategory = categoryFilter === 'all' || (vendor.category || '').toLowerCase() === categoryFilter.toLowerCase();
     return matchesSearch && matchesStatus && matchesCategory;
   });
+
+  const handleDownloadTemplate = () => {
+    const headers = ['name', 'type', 'category', 'gst_number', 'pan', 'msme_status', 'contact_person', 'email', 'phone'];
+    const csvContent = headers.join(',') + '\n';
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `vendor_import_template.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const handleExport = async () => {
     toast({
@@ -118,7 +133,7 @@ export default function VendorMaster() {
 
     try {
       await downloadFile(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/vendors/export/?format=xlsx`,
+        `${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/vendors/export/?format=xlsx`,
         `vendors_export_${Date.now()}.xlsx`,
         token || ''
       );
@@ -150,7 +165,7 @@ export default function VendorMaster() {
 
     try {
       const token = localStorage.getItem('campusspend_token');
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/vendors/import/`, {
+      const res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/vendors/import/`, {
         method: 'POST',
         headers: token ? { 'Authorization': `Bearer ${token}` } : {},
         body: formData,
@@ -185,7 +200,7 @@ export default function VendorMaster() {
   const handleToggleActive = async (vendorId: string, currentStatus: string) => {
     try {
       const token = localStorage.getItem('campusspend_token');
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/vendors/${vendorId}/toggle-active/`, {
+      const res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/vendors/${vendorId}/toggle-active/`, {
         method: 'POST',
         headers: token ? { 'Authorization': `Bearer ${token}` } : {},
       });
@@ -213,7 +228,7 @@ export default function VendorMaster() {
     if (!confirm) return;
     try {
       const token = localStorage.getItem('campusspend_token');
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/vendors/${vendorId}/resend-credentials/`, {
+      const res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/vendors/${vendorId}/resend-credentials/`, {
         method: 'POST',
         headers: token ? { 'Authorization': `Bearer ${token}` } : {},
       });
@@ -238,7 +253,7 @@ export default function VendorMaster() {
   const handleResetPassword = async (vendorId: string) => {
     try {
       const token = localStorage.getItem('campusspend_token');
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/vendors/${vendorId}/reset-password/`, {
+      const res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/vendors/${vendorId}/reset-password/`, {
         method: 'POST',
         headers: token ? { 'Authorization': `Bearer ${token}` } : {},
       });
@@ -306,6 +321,10 @@ export default function VendorMaster() {
               id="vendor-import-input"
               onChange={handleImport}
             />
+            <Button variant="outline" onClick={handleDownloadTemplate}>
+              <Download className="h-4 w-4 mr-2" />
+              Template
+            </Button>
             <Button variant="outline" onClick={() => document.getElementById('vendor-import-input')?.click()}>
               <Upload className="h-4 w-4 mr-2" />
               Import
@@ -325,6 +344,7 @@ export default function VendorMaster() {
                   </DialogDescription>
                 </DialogHeader>
                 <VendorForm
+                  dynamicCategories={dynamicCategories}
                   onClose={() => setIsAddDialogOpen(false)}
                   onSuccess={() => {
                     setIsAddDialogOpen(false);
@@ -400,14 +420,14 @@ export default function VendorMaster() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Categories</SelectItem>
-                  {categories.map((cat) => (
+                  {dynamicCategories.map((cat: any) => (
                     <SelectItem key={cat} value={cat}>
                       {cat}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <Button variant="outline" size="icon">
+              <Button variant="outline" size="icon" onClick={() => { setSearchQuery(''); setStatusFilter('all'); setCategoryFilter('all'); }} title="Clear Filters">
                 <Filter className="h-4 w-4" />
               </Button>
             </div>
@@ -579,6 +599,7 @@ export default function VendorMaster() {
             {editingVendor && (
               <VendorForm
                 vendor={editingVendor}
+                dynamicCategories={dynamicCategories}
                 onClose={() => setEditingVendor(null)}
                 onSuccess={() => {
                   setEditingVendor(null);
@@ -593,7 +614,7 @@ export default function VendorMaster() {
   );
 }
 
-function VendorForm({ vendor, onClose, onSuccess }: { vendor?: any; onClose: () => void; onSuccess: () => void }) {
+function VendorForm({ vendor, dynamicCategories, onClose, onSuccess }: { vendor?: any; dynamicCategories: string[]; onClose: () => void; onSuccess: () => void }) {
   const [selectedTowers, setSelectedTowers] = useState<string[]>(vendor?.approvedTowers || vendor?.approved_towers || []);
   const [name, setName] = useState(vendor?.name || '');
   const [type, setType] = useState(vendor?.type || '');
@@ -619,8 +640,8 @@ function VendorForm({ vendor, onClose, onSuccess }: { vendor?: any; onClose: () 
       const token = localStorage.getItem('campusspend_token');
       const isEdit = !!vendor;
       const url = isEdit
-        ? `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/vendors/${vendor.id}/`
-        : `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/vendors/`;
+        ? `${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/vendors/${vendor.id}/`
+        : `${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/vendors/`;
       const method = isEdit ? 'PUT' : 'POST';
 
       const payload = {
@@ -721,19 +742,25 @@ function VendorForm({ vendor, onClose, onSuccess }: { vendor?: any; onClose: () 
           </div>
           <div className="space-y-2">
             <Label htmlFor="category">Service Category {isUniversal ? '' : '*'}</Label>
-            <Select value={isUniversal ? 'universal' : category} onValueChange={setCategory} disabled={isUniversal}>
-              <SelectTrigger>
-                <SelectValue placeholder={isUniversal ? "Universal (All Categories)" : "Select category"} />
-              </SelectTrigger>
-              <SelectContent>
-                {isUniversal && <SelectItem value="universal">Universal</SelectItem>}
-                {categories.map((cat) => (
-                  <SelectItem key={cat} value={cat.toLowerCase()}>
-                    {cat}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {isUniversal ? (
+              <Input value="Universal" disabled />
+            ) : (
+              <>
+                <Input
+                  id="category"
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  placeholder="Type or select a category"
+                  list="category-options"
+                  required
+                />
+                <datalist id="category-options">
+                  {dynamicCategories.map((cat: any) => (
+                    <option key={cat} value={cat} />
+                  ))}
+                </datalist>
+              </>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="contact">Contact Person *</Label>

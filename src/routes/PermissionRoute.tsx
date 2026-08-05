@@ -58,8 +58,10 @@ export function PermissionRoute({
     return <>{children}</>;
   }
 
+  const effectiveRole = (user.role === 'cxo_citi' || user.role === 'cxo_emb') ? 'cxo' : user.role;
+
   // Explicitly restrict Budget Planning from non-permitted roles
-  if (permissionKey === 'procurement:budgets' && !['super_admin', 'finance_executive', 'finance_manager', 'facility_manager', 'project_head', 'cxo'].includes(user.role)) {
+  if (permissionKey === 'procurement:budgets' && !['super_admin', 'finance_executive', 'finance_manager', 'facility_manager', 'project_head', 'cxo'].includes(effectiveRole)) {
     return renderError("User role not in hardcoded allowed list for procurement:budgets");
   }
 
@@ -86,7 +88,6 @@ export function PermissionRoute({
   }
 
   // ROLE FALLBACK: User has no DB permissions — fall back to static role list
-  const effectiveRole = (user.role === 'cxo_citi' || user.role === 'cxo_emb') ? 'cxo' : user.role;
   if (!roles.includes(effectiveRole as UserRole)) {
     return renderError(`Role fallback check failed. Effective role '${effectiveRole}' is not in the required roles list.`);
   }

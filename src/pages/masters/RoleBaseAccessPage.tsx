@@ -72,7 +72,7 @@ const MODULE_ACCESS_SECTIONS: ModuleSection[] = [
       { key: "procurement:grn", label: "GRNs" },
       { key: "procurement:inventory", label: "Stock" },
       { key: "procurement:transfers", label: "Transfers" },
-      { key: "procurement:material_issue", label: "Material Issues" },
+      { key: "procurement:inventory_issue", label: "Material Issues" },
       { key: "procurement:inventory", label: "Scrap Disposal" } // Mapped to procurement:inventory in Django backend
     ]
   },

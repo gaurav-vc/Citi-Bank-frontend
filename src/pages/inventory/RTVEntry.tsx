@@ -27,7 +27,7 @@ export default function RTVEntry() {
   const fetchRtvs = async () => {
     try {
       const token = localStorage.getItem('campusspend_token');
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/rtvs/`, {
+      const res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/rtvs/`, {
         headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
       if (res.ok) {
@@ -43,7 +43,7 @@ export default function RTVEntry() {
     try {
       const token = localStorage.getItem('campusspend_token');
       // Fetch only partial_accepted or rejected GRNs for RTV creation
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/grns/`, {
+      const res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/grns/`, {
         headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
       if (res.ok) {
@@ -91,7 +91,7 @@ export default function RTVEntry() {
         status: 'returned'
       };
 
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/rtvs/`, {
+      const res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/rtvs/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

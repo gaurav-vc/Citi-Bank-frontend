@@ -106,7 +106,7 @@ export default function QualityInspection() {
 
     try {
       await downloadFile(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/grns/export/?format=xlsx`,
+        `${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/grns/export/?format=xlsx`,
         `qc_inspection_export_${Date.now()}.xlsx`,
         token || ''
       );

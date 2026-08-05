@@ -6,15 +6,7 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { allCountries, locationTree } from "@/utils/constants";
 import { Eye, Edit, Trash2 } from "lucide-react";
 
-const flattenStates = (countryData: any) =>
-  countryData ? Object.values(countryData).flatMap((regionNode: any) => Object.keys(regionNode || {})) : [];
-
-const flattenCities = (countryData: any) =>
-  countryData
-    ? Object.values(countryData).flatMap((regionNode: any) =>
-        Object.values(regionNode || {}).flatMap((stateNode: any) => Object.keys(stateNode || {}))
-      )
-    : [];
+// We will compute hierarchical lists dynamically below.
 
 export default function OrganizationsPage() {
   const navigate = useNavigate();
@@ -26,15 +18,18 @@ export default function OrganizationsPage() {
   const [city, setCity] = useState("");
   const [zone, setZone] = useState("");
 
-  const { data: orgs = [], isLoading: isOrgsLoading } = useQuery({
+  const { data: orgsData = [], isLoading: isOrgsLoading } = useQuery({
     queryKey: ["organizations"],
     queryFn: api.getOrganizations,
   });
 
-  const { data: sites = [], isLoading: isSitesLoading } = useQuery({
+  const { data: sitesData = [], isLoading: isSitesLoading } = useQuery({
     queryKey: ["sites"],
     queryFn: api.getSites,
   });
+
+  const orgs: any[] = Array.isArray(orgsData) ? orgsData : (orgsData as any)?.results || [];
+  const sites: any[] = Array.isArray(sitesData) ? sitesData : (sitesData as any)?.results || [];
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => api.deleteOrganization(id),
@@ -45,22 +40,69 @@ export default function OrganizationsPage() {
 
   const loading = isOrgsLoading || isSitesLoading;
 
-  const countryData = locationTree[country] || null;
-  const regions = countryData ? Object.keys(countryData) : [];
-  const states = region ? Object.keys(countryData?.[region] || {}) : flattenStates(countryData);
-  const cities = region
-    ? Object.keys(countryData?.[region]?.[stateName] || {})
-    : flattenCities(countryData).filter((cityName) =>
-        Object.values(countryData || {}).some(
-          (regionNode: any) =>
-            stateName in (regionNode || {}) && cityName in (regionNode[stateName] || {})
-        )
-      );
-  const zones = region
-    ? countryData?.[region]?.[stateName]?.[city] || []
-    : (Object.values(countryData || {}).find(
-        (node: any) => stateName in (node || {}) && city in (node[stateName] || {})
-      )?.[stateName]?.[city] || []);
+  const regions = useMemo(() => {
+    let list: string[] = [];
+    Object.entries(locationTree).forEach(([c, rTree]) => {
+      if (!country || c === country) {
+        list = [...list, ...Object.keys(rTree || {})];
+      }
+    });
+    return Array.from(new Set(list));
+  }, [country]);
+
+  const states = useMemo(() => {
+    let list: string[] = [];
+    Object.entries(locationTree).forEach(([c, rTree]) => {
+      if (!country || c === country) {
+        Object.entries(rTree || {}).forEach(([r, sTree]) => {
+          if (!region || r === region) {
+            list = [...list, ...Object.keys(sTree || {})];
+          }
+        });
+      }
+    });
+    return Array.from(new Set(list));
+  }, [country, region]);
+
+  const cities = useMemo(() => {
+    let list: string[] = [];
+    Object.entries(locationTree).forEach(([c, rTree]) => {
+      if (!country || c === country) {
+        Object.entries(rTree || {}).forEach(([r, sTree]) => {
+          if (!region || r === region) {
+            Object.entries(sTree || {}).forEach(([s, cTree]) => {
+              if (!stateName || s === stateName) {
+                list = [...list, ...Object.keys(cTree || {})];
+              }
+            });
+          }
+        });
+      }
+    });
+    return Array.from(new Set(list));
+  }, [country, region, stateName]);
+
+  const zones = useMemo(() => {
+    let list: string[] = [];
+    Object.entries(locationTree).forEach(([c, rTree]) => {
+      if (!country || c === country) {
+        Object.entries(rTree || {}).forEach(([r, sTree]) => {
+          if (!region || r === region) {
+            Object.entries(sTree || {}).forEach(([s, cTree]) => {
+              if (!stateName || s === stateName) {
+                Object.entries(cTree || {}).forEach(([cy, zList]) => {
+                  if (!city || cy === city) {
+                    list = [...list, ...(zList as string[] || [])];
+                  }
+                });
+              }
+            });
+          }
+        });
+      }
+    });
+    return Array.from(new Set(list));
+  }, [country, region, stateName, city]);
 
   const filteredRows = useMemo(() => {
     return orgs.filter((row) => {

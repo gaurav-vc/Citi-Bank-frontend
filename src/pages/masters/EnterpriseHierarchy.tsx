@@ -127,7 +127,7 @@ export default function EnterpriseHierarchy() {
     try {
       const token = localStorage.getItem('campusspend_token');
       const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-      const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+      const base = (import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'));
 
       // Load Orgs
       const orgRes = await fetch(`${base}/api/organizations/`, { headers });
@@ -201,7 +201,7 @@ export default function EnterpriseHierarchy() {
     e.preventDefault();
     try {
       const token = localStorage.getItem('campusspend_token');
-      const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+      const base = (import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'));
       const res = await fetch(`${base}/api/organizations/`, {
         method: 'POST',
         headers: {
@@ -277,7 +277,7 @@ export default function EnterpriseHierarchy() {
     e.preventDefault();
     try {
       const token = localStorage.getItem('campusspend_token');
-      const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+      const base = (import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'));
       const res = await fetch(`${base}/api/sites/`, {
         method: 'POST',
         headers: {
@@ -331,7 +331,7 @@ export default function EnterpriseHierarchy() {
     e.preventDefault();
     try {
       const token = localStorage.getItem('campusspend_token');
-      const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+      const base = (import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'));
       const res = await fetch(`${base}/api/departments/`, {
         method: 'POST',
         headers: {
@@ -388,7 +388,7 @@ export default function EnterpriseHierarchy() {
     e.preventDefault();
     try {
       const token = localStorage.getItem('campusspend_token');
-      const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+      const base = (import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'));
       const res = await fetch(`${base}/api/profiles/`, {
         method: 'POST',
         headers: {
@@ -452,7 +452,7 @@ export default function EnterpriseHierarchy() {
     e.preventDefault();
     try {
       const token = localStorage.getItem('campusspend_token');
-      const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+      const base = (import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'));
       const res = await fetch(`${base}/api/roles/`, {
         method: 'POST',
         headers: {

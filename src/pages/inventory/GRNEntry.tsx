@@ -131,7 +131,7 @@ export default function GRNEntry() {
 
     try {
       await downloadFile(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/inventory/grns/export/?format=xlsx`,
+        `${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/inventory/grns/export/?format=xlsx`,
         `grns_export_${Date.now()}.xlsx`,
         token || ''
       );
@@ -198,10 +198,17 @@ export default function GRNEntry() {
   };
 
   const filteredGRNs = grns.filter(grn => {
-    const matchesSearch = grn.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         grn.poId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (grn.vendor && grn.vendor.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesStatus = statusFilter === 'all' || grn.status === statusFilter;
+    const matchesSearch = (grn.id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (grn.poId || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (grn.vendor && (grn.vendor || '').toLowerCase().includes(searchTerm.toLowerCase()));
+    let matchesStatus = true;
+    if (statusFilter !== 'all') {
+      if (statusFilter === 'pending') {
+        matchesStatus = ['pending', 'pending_qc', 'qc_completed'].includes(grn.status);
+      } else {
+        matchesStatus = grn.status === statusFilter;
+      }
+    }
     return matchesSearch && matchesStatus;
   });
 

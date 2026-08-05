@@ -31,6 +31,7 @@ export function Header() {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showSearchResults, setShowSearchResults] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const searchRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -52,11 +53,13 @@ export function Header() {
 
     const timer = setTimeout(async () => {
       setIsSearching(true);
+      setSearchError(null);
       try {
         const results = await searchAPI.globalSearch(searchQuery);
         setSearchResults(results);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Search failed:', error);
+        setSearchError(error.response?.data?.error || error.message || 'Unknown error occurred');
       } finally {
         setIsSearching(false);
       }
@@ -115,7 +118,11 @@ export function Header() {
           {/* Search Results Dropdown */}
           {showSearchResults && searchQuery.trim().length >= 2 && (
             <div className="absolute top-full left-0 right-0 mt-2 bg-background border rounded-md shadow-lg overflow-hidden z-50 max-h-96 overflow-y-auto">
-              {isSearching ? (
+              {searchError ? (
+                <div className="p-4 text-center text-sm text-destructive bg-destructive/10 border border-destructive rounded-md m-2">
+                  <span className="font-bold">Error:</span> {searchError}
+                </div>
+              ) : isSearching ? (
                 <div className="p-4 text-center text-sm text-muted-foreground">Searching...</div>
               ) : searchResults.length > 0 ? (
                 <div className="py-2">

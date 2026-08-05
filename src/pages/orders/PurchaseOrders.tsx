@@ -99,7 +99,7 @@ export default function PurchaseOrders() {
     try {
       const token = localStorage.getItem('campusspend_token') || '';
       await downloadFile(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/orders/${po.id}/download/`,
+        `${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/orders/${po.id}/download/`,
         `PO_${po.id}.pdf`,
         token
       );
@@ -124,7 +124,7 @@ export default function PurchaseOrders() {
 
     try {
       await downloadFile(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/orders/export/?format=xlsx`,
+        `${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/orders/export/?format=xlsx`,
         `purchase_orders_export_${Date.now()}.xlsx`,
         token || ''
       );
@@ -744,8 +744,8 @@ function PODetailView({ po, onClose, onDownload }: { po: PurchaseOrder; onClose:
                   </tr>
                 </thead>
                 <tbody>
-                  {po.items.map((item) => (
-                    <tr key={item.id} className="border-t">
+                  {po.items.map((item: any, idx: number) => (
+                    <tr key={`item-${idx}`} className="border-t">
                       <td className="py-3 px-4">{item.itemName}</td>
                       <td className="py-3 px-4 text-right">{item.quantity} {item.uom}</td>
                       <td className="py-3 px-4 text-right">{formatCurrency(item.rate)}</td>

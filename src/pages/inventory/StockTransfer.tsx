@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { toast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -63,6 +64,11 @@ const mapStockTransfer = (t: any): StockTransfer => ({
 });
 
 export default function StockTransfer() {
+  const { user } = useAuth();
+  const canApprove = user?.role === 'super_admin' || 
+    (user?.permissions && user.permissions['procurement:inventory_transfer']?.approve === true) || 
+    ['store_keeper', 'site_manager', 'project_head'].includes(user?.role || '');
+
   const [transfers, setTransfers] = useState<StockTransfer[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -268,7 +274,7 @@ export default function StockTransfer() {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            {transfer.status === 'pending' && (
+                            {transfer.status === 'pending' && canApprove && (
                               <>
                                 <Button variant="default" size="sm" onClick={() => handleUpdateStatus(transfer.id, 'approved')}>Approve</Button>
                                 <Button variant="destructive" size="sm" onClick={() => handleUpdateStatus(transfer.id, 'cancelled')}>Reject</Button>

@@ -26,7 +26,7 @@ export default function GDNEntry() {
   const fetchGdns = async () => {
     try {
       const token = localStorage.getItem('campusspend_token');
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/gdns/`, {
+      const res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/gdns/`, {
         headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
       if (res.ok) {
@@ -42,7 +42,7 @@ export default function GDNEntry() {
     try {
       const token = localStorage.getItem('campusspend_token');
       // Fetch only accepted or partial_accepted GRNs for GDN creation
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/grns/`, {
+      const res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/grns/`, {
         headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
       if (res.ok) {
@@ -84,7 +84,7 @@ export default function GDNEntry() {
         status: 'dispatched'
       };
 
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/gdns/`, {
+      const res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/gdns/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

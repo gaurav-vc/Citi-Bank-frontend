@@ -43,7 +43,7 @@ export function StockHistoryModal({ isOpen, onClose, itemId, itemName }: StockHi
     try {
       const token = localStorage.getItem('campusspend_token');
       const res = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/inventory/${itemId}/history/`,
+        `${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/inventory/${itemId}/history/`,
         {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         }

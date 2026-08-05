@@ -469,7 +469,27 @@ function CreateIssueForm({ onClose, onSuccess }: { onClose: () => void; onSucces
         </div>
         <div className="space-y-2">
           <Label>Floor</Label>
-          <Input placeholder="e.g., 5th Floor, All Floors" value={floor} onChange={(e) => setFloor(e.target.value)} />
+          <Select value={floor} onValueChange={setFloor}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select floor" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="All Floors">All Floors</SelectItem>
+              <SelectItem value="Basement">Basement</SelectItem>
+              <SelectItem value="Ground Floor">Ground Floor</SelectItem>
+              <SelectItem value="1st Floor">1st Floor</SelectItem>
+              <SelectItem value="2nd Floor">2nd Floor</SelectItem>
+              <SelectItem value="3rd Floor">3rd Floor</SelectItem>
+              <SelectItem value="4th Floor">4th Floor</SelectItem>
+              <SelectItem value="5th Floor">5th Floor</SelectItem>
+              <SelectItem value="6th Floor">6th Floor</SelectItem>
+              <SelectItem value="7th Floor">7th Floor</SelectItem>
+              <SelectItem value="8th Floor">8th Floor</SelectItem>
+              <SelectItem value="9th Floor">9th Floor</SelectItem>
+              <SelectItem value="10th Floor">10th Floor</SelectItem>
+              <SelectItem value="Roof">Roof</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 

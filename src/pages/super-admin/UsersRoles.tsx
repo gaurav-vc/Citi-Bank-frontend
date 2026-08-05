@@ -291,6 +291,8 @@ export default function SuperAdminUsersRoles() {
       role: formData.get("role_name"),
       role_code: formData.get("role_code"),
       department_id: formData.get("department") || null,
+      organization_id: formData.get("organization_id") || null,
+      site_id: formData.get("site_id") || null,
       access_level: formData.get("access_level") || null,
       dashboard_type: formData.get("dashboard_type") || null,
       can_manage_users: canManageUsers,
@@ -315,6 +317,7 @@ export default function SuperAdminUsersRoles() {
       role: formData.get("role") || null,
       department: formData.get("department") || null,
       department_id: formData.get("department") || null,
+      organization_id: formData.get("organization") || null,
       site: formData.get("site") || null,
       site_id: formData.get("site") || null,
       employee_id: formData.get("employee_id"),
@@ -781,6 +784,27 @@ export default function SuperAdminUsersRoles() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-slate-500 dark:text-slate-400">Organization</Label>
+                    <select name="organization_id" defaultValue={editingRole?.organization_id || ""} disabled={isPreviewMode} className="w-full h-9 rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 px-3 py-1 text-xs outline-none disabled:opacity-75">
+                      <option value="">Global / All Organizations</option>
+                      {organizations.map((o: any) => (
+                        <option key={o.id} value={o.id}>{o.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-slate-500 dark:text-slate-400">Site</Label>
+                    <select name="site_id" defaultValue={editingRole?.site_id || ""} disabled={isPreviewMode} className="w-full h-9 rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 px-3 py-1 text-xs outline-none disabled:opacity-75">
+                      <option value="">Global / All Sites</option>
+                      {sites.map((s: any) => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
                     <Label className="text-xs font-semibold text-slate-500 dark:text-slate-400">Department <span className="text-primary">*</span></Label>
                     <select name="department" required defaultValue={editingRole?.department_id || ""} disabled={isPreviewMode} className="w-full h-9 rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 px-3 py-1 text-xs outline-none disabled:opacity-75">
                       <option value="">Select...</option>
@@ -923,8 +947,17 @@ export default function SuperAdminUsersRoles() {
                     </select>
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold text-slate-550 dark:text-slate-400">Site / Organization <span className="text-primary">*</span></Label>
-                    <select name="site" required defaultValue={editingUser?.profile?.site || ""} disabled={isPreviewMode} className="w-full h-9 rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 px-3 py-1 text-xs outline-none font-medium text-slate-700 disabled:opacity-75">
+                    <Label className="text-xs font-semibold text-slate-550 dark:text-slate-400">Organization <span className="text-primary">*</span></Label>
+                    <select name="organization" required defaultValue={editingUser?.profile?.organization_id || ""} disabled={isPreviewMode} className="w-full h-9 rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 px-3 py-1 text-xs outline-none font-medium text-slate-700 disabled:opacity-75">
+                      <option value="">Select...</option>
+                      {organizations.map((o: any) => (
+                        <option key={o.id} value={o.id}>{o.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-slate-550 dark:text-slate-400">Site</Label>
+                    <select name="site" defaultValue={editingUser?.profile?.site || ""} disabled={isPreviewMode} className="w-full h-9 rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 px-3 py-1 text-xs outline-none font-medium text-slate-700 disabled:opacity-75">
                       <option value="">Select...</option>
                       {sites.map((s: any) => (
                         <option key={s.id} value={s.id}>{s.name}</option>
@@ -953,7 +986,11 @@ export default function SuperAdminUsersRoles() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-semibold text-slate-550">Status</span>
-                    <Switch name="is_active" disabled={isPreviewMode} defaultChecked={editingUser ? !!editingUser.is_active : true} className="data-[state=checked]:bg-primary" />
+                    <input type="hidden" name="is_active" value={editingUser ? (editingUser.is_active ? "on" : "off") : "on"} />
+                    <Switch disabled={isPreviewMode} defaultChecked={editingUser ? !!editingUser.is_active : true} onCheckedChange={(checked) => {
+                      const hiddenInput = document.querySelector('input[name="is_active"]') as HTMLInputElement;
+                      if (hiddenInput) hiddenInput.value = checked ? "on" : "off";
+                    }} className="data-[state=checked]:bg-primary" />
                   </div>
                 </div>
               </div>

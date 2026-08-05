@@ -43,7 +43,7 @@ export default function SuperAdminBillingLogDetail() {
   const fetchDashboardData = async () => {
     try {
       const token = localStorage.getItem('campusspend_token');
-      const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+      const base = (import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'));
       const res = await fetch(`${base}/api/reports/super-admin-billing-logs/${id}/`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -80,6 +80,32 @@ export default function SuperAdminBillingLogDetail() {
     return matchSearch && matchStatus;
   });
 
+  const handleDownloadCSV = () => {
+    if (!data) return;
+    const headers = ['Invoice Number', 'Billing Date', 'Due Date', 'Amount', 'Status'];
+    const rows = filteredInvoices.map(inv => [
+      inv.invoice_number,
+      inv.billing_date,
+      inv.due_date,
+      inv.amount,
+      inv.status
+    ]);
+    
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.join(','))
+    ].join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `${data.organization_name}_billing_logs.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <MainLayout>
       <div className="p-8 min-h-screen bg-slate-50 font-sans text-slate-900">
@@ -101,7 +127,7 @@ export default function SuperAdminBillingLogDetail() {
             </div>
           </div>
           <div className="flex gap-3">
-            <button className="px-4 py-2 border border-slate-300 bg-white rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors shadow-sm">
+            <button onClick={handleDownloadCSV} className="px-4 py-2 border border-slate-300 bg-white rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors shadow-sm">
               Download CSV
             </button>
             <button className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm">

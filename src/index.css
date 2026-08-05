@@ -217,7 +217,7 @@
   }
 
   .nav-item-active {
-    @apply bg-sidebar-accent text-sidebar-primary font-medium;
+    @apply bg-sidebar-accent text-white font-semibold;
   }
 
   /* Drill-down Card */

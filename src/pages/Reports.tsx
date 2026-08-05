@@ -122,7 +122,7 @@ export default function Reports() {
     const fetchData = async () => {
       try {
         const token = localStorage.getItem('campusspend_token');
-        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/reports/data/`, {
+        const res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/reports/data/`, {
           headers: token ? { 'Authorization': `Bearer ${token}` } : {},
         });
         if (!res.ok) throw new Error('Failed to fetch reports data');
@@ -152,7 +152,7 @@ export default function Reports() {
 
     try {
       await downloadFile(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/reports/export/${reportId}/?format=xlsx`,
+        `${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/reports/export/${reportId}/?format=xlsx`,
         `report_${reportId}_export_${Date.now()}.xlsx`,
         token || ''
       );

@@ -94,8 +94,7 @@ const iconMap: Record<string, React.ElementType> = {
   'superadmin:users': Users,
   'superadmin:permissions': ShieldCheck,
   'superadmin:billing': Receipt,
-  'procurement:payment_proposals': Receipt,
-  'procurement:utr_management': Wallet,
+  'procurement:payments': Wallet,
   'reports:dashboard': LayoutDashboard,
   'reports:reports': BarChart3,
   'reports:inventory_reports': FileText,
@@ -155,7 +154,6 @@ const pathMap: Record<string, string> = {
   'superadmin:users': '/super-admin/users-roles',
   'superadmin:permissions': '/super-admin/permissions',
   'procurement:payment_proposals': '/payments/proposals',
-  'procurement:utr_management': '/payments/utr',
   'reports:dashboard': '/dashboard',
   'reports:reports': '/reports',
   'reports:inventory_reports': '/reports/inventory',
@@ -220,7 +218,6 @@ const staticModulesFallback: DBModule[] = [
       { key: 'procurement:billing_approvals', label: 'Finance Approvals' },
       { key: 'procurement:payment_proposals', label: 'Payment Proposals' },
       { key: 'procurement:payments', label: 'Payments' },
-      { key: 'procurement:utr_management', label: 'UTR Management' },
       { key: 'procurement:budgets', label: 'Budgets' }
     ]
   },
@@ -276,7 +273,7 @@ export function Sidebar() {
   const fetchModules = async () => {
     try {
       const token = localStorage.getItem('campusspend_token');
-      const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+      const base = (import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'));
       const res = await fetch(`${base}/api/setups/modules-features`, {
         headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
@@ -611,12 +608,12 @@ export function Sidebar() {
                           className={({ isActive }) =>
                             cn(
                               'flex items-center gap-3 px-3 py-2.5 rounded-md text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors',
-                              isActive && 'bg-sidebar-accent text-sidebar-primary font-semibold'
+                              isActive && 'bg-sidebar-accent text-white font-semibold'
                             )
                           }
                         >
-                          <Icon className="h-5 w-5" />
-                          <span>{item.label}</span>
+                          <Icon className="h-5 w-5 shrink-0" />
+                          <span className="truncate">{item.label}</span>
                         </NavLink>
                       );
                     })}
@@ -634,9 +631,9 @@ export function Sidebar() {
                     isChildActive && 'nav-item-active'
                   )}
                 >
-                  <div className="flex items-center gap-3">
-                    <ModuleIcon className="h-5 w-5" />
-                    <span>{mod.title}</span>
+                  <div className="flex items-center gap-3 min-w-0">
+                    <ModuleIcon className="h-5 w-5 shrink-0" />
+                    <span className="truncate">{mod.title}</span>
                   </div>
                   {isExpanded ? (
                     <ChevronDown className="h-4 w-4" />
@@ -657,12 +654,12 @@ export function Sidebar() {
                           className={({ isActive }) =>
                             cn(
                               'flex items-center gap-2 px-3 py-2 rounded-md text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors',
-                              isActive && 'bg-sidebar-accent text-sidebar-primary font-medium'
+                              isActive && 'bg-sidebar-accent text-white font-medium'
                             )
                           }
                         >
-                          <Icon className="h-4 w-4" />
-                          <span>{item.label}</span>
+                          <Icon className="h-4 w-4 shrink-0" />
+                          <span className="truncate">{item.label}</span>
                         </NavLink>
                       );
                     })}

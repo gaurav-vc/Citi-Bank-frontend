@@ -83,107 +83,107 @@ export interface ProductInspection {
 export const inventoryAPI = {
   // Items Master
   getItems: async (): Promise<Item[]> => {
-    const response = await api.get('/inventory/items/');
-    return Array.isArray(response.data) ? response.data : (response.data?.results ?? []);
+    const response = await api.get('items/');
+    return Array.isArray(response) ? response : (response?.results ?? []);
   },
   createItem: async (data: Partial<Item>): Promise<Item> => {
-    const response = await api.post('/inventory/items/', data);
-    return response.data;
+    const response = await api.post('items/', data);
+    return response;
   },
   updateItem: async (id: string, data: Partial<Item>): Promise<Item> => {
-    const response = await api.patch(`/inventory/items/${id}/`, data);
-    return response.data;
+    const response = await api.patch(`items/${id}/`, data);
+    return response;
   },
   deleteItem: async (id: string): Promise<void> => {
-    await api.delete(`/inventory/items/${id}/`);
+    await api.delete(`items/${id}/`);
   },
 
   // Stock / Ledger
   getStockLedger: async (): Promise<any[]> => {
     // Uses the custom mapped view that returns currentStock, minStockLevel, etc.
-    const response = await api.get('/stock/');
-    return Array.isArray(response.data) ? response.data : (response.data?.results ?? []);
+    const response = await api.get('stock/');
+    return Array.isArray(response) ? response : (response?.results ?? []);
   },
   addStock: async (data: any): Promise<any> => {
-    const response = await api.post('/inventory/add-stock/', data);
-    return response.data;
+    const response = await api.post('inventory/add-stock/', data);
+    return response;
   },
   getHistory: async (itemId: string): Promise<any> => {
-    const response = await api.get(`/inventory/${itemId}/history/`);
-    return Array.isArray(response.data) ? response.data : (response.data?.results ?? []);
+    const response = await api.get(`inventory/${itemId}/history/`);
+    return Array.isArray(response) ? response : (response?.results ?? []);
   },
 
   // GRNs
   getGRNs: async (): Promise<GRN[]> => {
-    const response = await api.get('/inventory/grns/');
-    return Array.isArray(response.data) ? response.data : (response.data?.results ?? []);
+    const response = await api.get('grns/');
+    return Array.isArray(response) ? response : (response?.results ?? []);
   },
   getPurchaseOrders: async (): Promise<any[]> => {
-    const response = await api.get('/orders/');
-    return Array.isArray(response.data) ? response.data : (response.data?.results ?? []);
+    const response = await api.get('orders/');
+    return Array.isArray(response) ? response : (response?.results ?? []);
   },
   getGRNById: async (id: string): Promise<GRN> => {
-    const response = await api.get(`/inventory/grns/${id}/`);
-    return response.data;
+    const response = await api.get(`grns/${id}/`);
+    return response;
   },
   createGRN: async (data: Partial<GRN>): Promise<GRN> => {
-    const response = await api.post('/inventory/grns/', data);
-    return response.data;
+    const response = await api.post('grns/', data);
+    return response;
   },
   processGRNAction: async (id: string, data: any): Promise<any> => {
-    const response = await api.post(`/inventory/grns/${id}/action/`, data);
-    return response.data;
+    const response = await api.post(`grns/${id}/action/`, data);
+    return response;
   },
 
   // Stock Transfers
   getTransfers: async (): Promise<StockTransfer[]> => {
-    const response = await api.get('/inventory/transfers/');
-    return Array.isArray(response.data) ? response.data : (response.data?.results ?? []);
+    const response = await api.get('transfers/');
+    return Array.isArray(response) ? response : (response?.results ?? []);
   },
   createTransfer: async (data: Partial<StockTransfer>): Promise<StockTransfer> => {
-    const response = await api.post('/inventory/transfers/', data);
-    return response.data;
+    const response = await api.post('transfers/', data);
+    return response;
   },
   updateTransfer: async (id: string, data: Partial<StockTransfer>): Promise<StockTransfer> => {
-    const response = await api.patch(`/inventory/transfers/${id}/`, data);
-    return response.data;
+    const response = await api.patch(`transfers/${id}/`, data);
+    return response;
   },
 
   // Material Issues / GDN
   getIssues: async (): Promise<MaterialIssue[]> => {
-    const response = await api.get('/inventory/issues/');
-    return Array.isArray(response.data) ? response.data : (response.data?.results ?? []);
+    const response = await api.get('issues/');
+    return Array.isArray(response) ? response : (response?.results ?? []);
   },
   createIssue: async (data: Partial<MaterialIssue>): Promise<MaterialIssue> => {
-    const response = await api.post('/inventory/issues/', data);
-    return response.data;
+    const response = await api.post('issues/', data);
+    return response;
   },
   updateIssue: async (id: string, data: Partial<MaterialIssue>): Promise<MaterialIssue> => {
-    const response = await api.patch(`/inventory/issues/${id}/`, data);
-    return response.data;
+    const response = await api.patch(`issues/${id}/`, data);
+    return response;
   },
 
   // Scrap Disposal
   getScraps: async (): Promise<ScrapDisposal[]> => {
-    const response = await api.get('/inventory/scrap/');
-    return Array.isArray(response.data) ? response.data : (response.data?.results ?? []);
+    const response = await api.get('scrap/');
+    return Array.isArray(response) ? response : (response?.results ?? []);
   },
   createScrap: async (data: Partial<ScrapDisposal>): Promise<ScrapDisposal> => {
-    const response = await api.post('/inventory/scrap/', data);
-    return response.data;
+    const response = await api.post('scrap/', data);
+    return response;
   },
   updateScrap: async (id: string, data: Partial<ScrapDisposal>): Promise<ScrapDisposal> => {
-    const response = await api.patch(`/inventory/scrap/${id}/`, data);
-    return response.data;
+    const response = await api.patch(`scrap/${id}/`, data);
+    return response;
   },
 
   // Product Inspections
   getInspections: async (): Promise<ProductInspection[]> => {
-    const response = await api.get('/inventory/inspections/');
-    return Array.isArray(response.data) ? response.data : (response.data?.results ?? []);
+    const response = await api.get('inspections/');
+    return Array.isArray(response) ? response : (response?.results ?? []);
   },
   createInspection: async (data: Partial<ProductInspection>): Promise<ProductInspection> => {
-    const response = await api.post('/inventory/inspections/', data);
-    return response.data;
+    const response = await api.post('inspections/', data);
+    return response;
   },
 };

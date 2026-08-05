@@ -170,7 +170,7 @@ export default function CreateIndent() {
     setIsLoading(true);
     try {
       const approvalsQuery = location.pathname === '/requisitions/approvals' ? '?approvals_only=true' : '';
-      const data = await requisitionsAPI.getIndents(approvalsQuery.slice(1));
+      const data = await requisitionsAPI.getIndents(approvalsQuery);
       if (data) {
         setIndentsList(Array.isArray(data) ? data : (data.results ?? []));
       }
@@ -446,7 +446,7 @@ export default function CreateIndent() {
   const handleInventoryCheckSubmit = async () => {
     if (!selectedIndentDetail) return;
     try {
-      await api.post(`requisitions/indents/${selectedIndentDetail.id}/inventory-check/`, {
+      await api.post(`indents/${selectedIndentDetail.id}/inventory-check/`, {
         inventory_status: invStatus,
         inventory_recommendation: invComments
       });
@@ -701,7 +701,7 @@ export default function CreateIndent() {
                         {selectedIndentDetail.attachments.map((file: any, index: number) => (
                           <a 
                             key={index} 
-                            href={file.url || '#'} 
+                            href={file.url ? (file.url.startsWith('http') ? file.url : `${((import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))).replace(/\/$/, '')}/${file.url.replace(/^\//, '')}`) : '#'} 
                             target="_blank" 
                             rel="noreferrer" 
                             className="text-sm text-primary bg-primary/5 p-2 px-3 rounded border border-primary/20 hover:bg-primary/10 flex items-center gap-2 transition-colors"

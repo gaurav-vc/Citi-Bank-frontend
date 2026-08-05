@@ -167,7 +167,7 @@ export default function RolesUsersPage() {
   const { data: rawProfiles = [] } = useQuery({
     queryKey: ["raw-profiles"],
     queryFn: () => {
-      const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+      const BASE_URL = (import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'));
       const token = localStorage.getItem('campusspend_token');
       return fetch(`${BASE_URL}/api/profiles/`, {
         headers: {

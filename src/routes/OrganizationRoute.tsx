@@ -44,15 +44,35 @@ export function OrganizationRoute({ children }: OrganizationRouteProps) {
   // Restrict routes if user does not belong to any Organization context
   if (!user.profile || !user.profile.organization_id) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-background p-6">
-        <div className="max-w-md text-center space-y-4">
-          <h1 className="text-2xl font-bold text-destructive">Missing Organization Context</h1>
-          <p className="text-muted-foreground">
-            Your profile has not been assigned to any Organization. Please contact an administrator to bind your account to a specific Organization node.
+      <div className="min-h-screen flex items-center justify-center bg-rose-50 p-4">
+        <div className="bg-white p-6 rounded-lg shadow-xl border-2 border-rose-500 max-w-lg w-full">
+          <h2 className="text-xl font-bold text-rose-600 mb-2 flex items-center gap-2">
+            <span className="text-2xl">⚠️</span> Missing Organization Context
+          </h2>
+          <div className="text-slate-700 font-mono text-sm bg-slate-100 p-3 rounded border space-y-2 mb-4">
+            <p><strong>Reason:</strong> Your profile has not been assigned to any Organization.</p>
+            <p><strong>Current Role:</strong> {user.role}</p>
+            <p><strong>Profile Attached:</strong> {user.profile ? 'Yes' : 'No'}</p>
+            <p><strong>Organization ID:</strong> {user.profile?.organization_id || 'null'}</p>
+            <p><strong>Bypass Roles:</strong> {ORGANIZATION_BYPASS_ROLES.join(', ')}</p>
+          </div>
+          <p className="text-sm text-slate-600 mb-4">
+            Please contact an administrator to bind your account to a specific Organization node in the Users & Roles setup.
           </p>
-          <a href="/login" className="inline-block text-primary hover:underline">
-            Go back to Login
-          </a>
+          <div className="flex gap-2">
+            <button 
+              onClick={() => window.location.href = '/dashboard'}
+              className="flex-1 px-4 py-2 bg-slate-900 text-white rounded hover:bg-slate-800 font-bold"
+            >
+              Return to Dashboard
+            </button>
+            <a 
+              href="/login"
+              className="flex-1 px-4 py-2 bg-rose-100 text-rose-700 text-center rounded hover:bg-rose-200 font-bold"
+            >
+              Go to Login
+            </a>
+          </div>
         </div>
       </div>
     );

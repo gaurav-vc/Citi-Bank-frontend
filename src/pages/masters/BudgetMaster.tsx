@@ -74,10 +74,11 @@ const mapBudget = (b: any): BudgetLine => ({
 
 export default function BudgetMaster() {
   const { token, user } = useAuth();
-  const role = user?.role;
-  const canCreateOrEdit = !!(role && ['super_admin', 'finance_manager', 'finance_executive'].includes(role));
+  const effectiveRole = (user?.role === 'cxo_citi' || user?.role === 'cxo_emb') ? 'cxo' : user?.role;
+  const role = effectiveRole;
+  const canCreateOrEdit = !!(role && ['super_admin', 'finance_manager', 'finance_executive', 'cxo'].includes(role));
   const canDelete = !!(role && ['super_admin', 'finance_manager'].includes(role));
-  const canImport = !!(role && ['super_admin', 'finance_manager', 'finance_executive'].includes(role));
+  const canImport = !!(role && ['super_admin', 'finance_manager', 'finance_executive', 'cxo'].includes(role));
   const canExport = !!(role && ['super_admin', 'finance_manager', 'finance_executive', 'cxo'].includes(role));
 
   const [rows, setRows] = useState<BudgetLine[]>([]);
@@ -87,7 +88,7 @@ export default function BudgetMaster() {
     if (!confirm('Are you sure you want to delete this budget line?')) return;
     try {
       const token = localStorage.getItem('campusspend_token');
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/budgets/${id}/`, {
+      const res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/budgets/${id}/`, {
         method: 'DELETE',
         headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
@@ -114,7 +115,7 @@ export default function BudgetMaster() {
     setHistoryLoading(true);
     try {
       const token = localStorage.getItem('campusspend_token');
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/budgets/${budgetLine.id}/history/`, {
+      const res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/budgets/${budgetLine.id}/history/`, {
         headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
       if (res.ok) {
@@ -145,7 +146,7 @@ export default function BudgetMaster() {
     setCategoriesError(null);
     try {
       const token = localStorage.getItem('campusspend_token');
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/item-categories/`, {
+      const res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/item-categories/`, {
         headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
       if (res.ok) {
@@ -165,7 +166,7 @@ export default function BudgetMaster() {
   const fetchBudgets = async () => {
     try {
       const token = localStorage.getItem('campusspend_token');
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/budgets/`, {
+      const res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/budgets/`, {
         headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
       if (res.ok) {
@@ -183,7 +184,7 @@ export default function BudgetMaster() {
 
     try {
       await downloadFile(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/budgets/export/?format=xlsx`,
+        `${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/budgets/export/?format=xlsx`,
         `budgets_export_${Date.now()}.xlsx`,
         token || ''
       );
@@ -205,7 +206,7 @@ export default function BudgetMaster() {
 
     try {
       const token = localStorage.getItem('campusspend_token');
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/budgets/import/`, {
+      const res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/budgets/import/`, {
         method: 'POST',
         headers: token ? { 'Authorization': `Bearer ${token}` } : {},
         body: formData,
@@ -303,7 +304,7 @@ export default function BudgetMaster() {
       notes: r.notes || ''
     };
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/budgets/`, {
+      const res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/budgets/`, {
         method: 'POST',
         headers,
         body: JSON.stringify(body)
@@ -350,11 +351,11 @@ export default function BudgetMaster() {
     };
     
     try {
-      let url = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/budgets/`;
+      let url = `${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/budgets/`;
       let method = 'POST';
       
       if (editing) {
-        url = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/budgets/${editing.id}/`;
+        url = `${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/budgets/${editing.id}/`;
         method = 'PATCH';
       } else {
         body.id = `BUD-${String(rows.length + 1).padStart(3, '0')}`;
@@ -398,6 +399,15 @@ export default function BudgetMaster() {
                   id="budget-import-input"
                   onChange={handleImport}
                 />
+                <Button variant="outline" size="sm" onClick={() => {
+                  const link = document.createElement('a');
+                  link.href = '/budget_import_template.csv';
+                  link.download = 'budget_import_template.csv';
+                  link.click();
+                }}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Format Template
+                </Button>
                 <Button variant="outline" size="sm" onClick={() => document.getElementById('budget-import-input')?.click()}>
                   <Upload className="h-4 w-4 mr-2" />
                   Import Excel

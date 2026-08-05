@@ -24,8 +24,8 @@ export default function FinanceApprovalQueue() {
       const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
       
       const [appRes, wfRes] = await Promise.all([
-        fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/approvals/my-pending/`, { headers }),
-        fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/workflow/pending/`, { headers })
+        fetch(`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/approvals/my-pending/`, { headers }),
+        fetch(`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/workflow/pending/`, { headers })
       ]);
 
       let combined: any[] = [];
@@ -72,14 +72,14 @@ export default function FinanceApprovalQueue() {
           action: action,
           comments: remarks[approvalId] || ''
         };
-        res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/workflow/action_step/`, {
+        res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/workflow/action_step/`, {
           method: 'POST',
           headers,
           body: JSON.stringify(payload)
         });
       } else {
         const payload = { remarks: remarks[approvalId] || '' };
-        res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/approvals/${approvalId}/${action}/`, {
+        res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/approvals/${approvalId}/${action}/`, {
           method: 'POST',
           headers,
           body: JSON.stringify(payload)

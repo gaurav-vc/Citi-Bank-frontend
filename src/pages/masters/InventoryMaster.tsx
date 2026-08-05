@@ -41,7 +41,7 @@ export default function InventoryMaster() {
   const fetchFields = async () => {
     try {
       const authToken = localStorage.getItem('campusspend_token') || token;
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/setups/inventory-master-fields/`, {
+      const res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/setups/inventory-master-fields/`, {
         headers: authToken ? { 'Authorization': `Bearer ${authToken}` } : {}
       });
       if (res.ok) {
@@ -56,7 +56,7 @@ export default function InventoryMaster() {
   const deleteField = async (id: number) => {
     try {
       const authToken = localStorage.getItem('campusspend_token') || token;
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/setups/inventory-master-fields/${id}/`, {
+      const res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/setups/inventory-master-fields/${id}/`, {
         method: 'DELETE',
         headers: authToken ? { 'Authorization': `Bearer ${authToken}` } : {}
       });
@@ -185,7 +185,7 @@ function CreateFieldForm({ onClose, onSuccess, token }: { onClose: () => void; o
     const finalValue = value.trim() || label.toLowerCase().replace(/[^a-z0-9]+/g, '_');
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/setups/inventory-master-fields/`, {
+      const res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/setups/inventory-master-fields/`, {
         method: 'POST',
         headers,
         body: JSON.stringify({

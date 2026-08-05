@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { toast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -62,10 +63,17 @@ const mapScrap = (s: any): ScrapItem => {
 };
 
 export default function ScrapDisposal() {
+  const { user } = useAuth();
+  const canApprove = user?.role === 'super_admin' || 
+    (user?.permissions && user.permissions['procurement:inventory_disposal']?.approve === true) || 
+    ['store_keeper', 'site_manager', 'project_head'].includes(user?.role || '');
+
   const [scrapItems, setScrapItems] = useState<ScrapItem[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isViewOpen, setIsViewOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<ScrapItem | null>(null);
 
   useEffect(() => {
     fetchScrap();
@@ -279,8 +287,8 @@ export default function ScrapDisposal() {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <Button variant="ghost" size="sm">View</Button>
-                            {item.status === 'pending' && (
+                            <Button variant="ghost" size="sm" onClick={() => { setSelectedItem(item); setIsViewOpen(true); }}>View</Button>
+                            {item.status === 'pending' && canApprove && (
                               <>
                                 <Button variant="default" size="sm" onClick={() => handleUpdateStatus(item.id, 'approved')}>Approve</Button>
                                 <Button variant="destructive" size="sm" onClick={() => handleUpdateStatus(item.id, 'rejected')}>Reject</Button>
@@ -300,6 +308,67 @@ export default function ScrapDisposal() {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Scrap Disposal Details</DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">View details of the scrap disposal request.</DialogDescription>
+          </DialogHeader>
+          {selectedItem && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Request ID</p>
+                  <p className="font-medium">{selectedItem.id}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Status</p>
+                  <Badge variant={statusConfig[selectedItem.status]?.variant || 'default'}>
+                    {statusConfig[selectedItem.status]?.label || selectedItem.status}
+                  </Badge>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Item Name</p>
+                  <p className="font-medium">{selectedItem.itemName}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Category</p>
+                  <p className="font-medium">{selectedItem.category}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Quantity</p>
+                  <p className="font-medium">{selectedItem.quantity} {selectedItem.uom}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Estimated Value</p>
+                  <p className="font-medium text-destructive">₹{selectedItem.estimatedValue.toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Recovered Value</p>
+                  <p className="font-medium text-success">{selectedItem.recoveredValue > 0 ? `₹${selectedItem.recoveredValue.toLocaleString()}` : '-'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Requested By</p>
+                  <p className="font-medium">{selectedItem.requestedBy}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Disposal Method</p>
+                  <p className="font-medium">{selectedItem.disposalMethod || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Disposal Date</p>
+                  <p className="font-medium">{selectedItem.disposalDate || '-'}</p>
+                </div>
+                <div className="col-span-2">
+                  <p className="text-sm text-muted-foreground">Reason</p>
+                  <p className="font-medium">{selectedItem.reason}</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </MainLayout>
   );
 }

@@ -308,7 +308,7 @@ export default function TenderingRFQ() {
     toast({ title: 'Export Started', description: 'RFQs list is being exported to Excel.' });
     try {
       await downloadFile(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/rfqs/export/?format=xlsx`,
+        `${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/rfqs/export/?format=xlsx`,
         `rfqs_export_${Date.now()}.xlsx`,
         token || ''
       );
@@ -321,14 +321,25 @@ export default function TenderingRFQ() {
   const filteredRFQs = rfqs.filter(rfq => {
     const matchesSearch = rfq.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           rfq.id.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || rfq.status === statusFilter;
+                          
+    let matchesStatus = true;
+    if (statusFilter !== 'all') {
+      if (statusFilter === 'awarded') {
+        matchesStatus = ['awarded', 'po_ready', 'po_created', 'APPROVED_BY_BOTH_CXOS', 'AWARD_READY'].includes(rfq.status);
+      } else if (statusFilter === 'bidding') { // Represents 'Active RFQs' filter from card
+        matchesStatus = ['published', 'bidding_open', 'bidding_closed', 'quotation_received', 'bidding', 'vendor_responded', 'evaluation'].includes(rfq.status);
+      } else {
+        matchesStatus = rfq.status === statusFilter;
+      }
+    }
+
     return matchesSearch && matchesStatus;
   });
 
   const stats = {
     total: rfqs.length,
-    active: rfqs.filter(r => ['published', 'bidding', 'vendor_responded', 'evaluation'].includes(r.status)).length,
-    awarded: rfqs.filter(r => r.status === 'awarded').length,
+    active: rfqs.filter(r => ['published', 'bidding_open', 'bidding_closed', 'quotation_received', 'bidding', 'vendor_responded', 'evaluation'].includes(r.status)).length,
+    awarded: rfqs.filter(r => ['awarded', 'po_ready', 'po_created', 'APPROVED_BY_BOTH_CXOS', 'AWARD_READY'].includes(r.status)).length,
     totalValue: rfqs.reduce((sum, r) => sum + r.estimatedValue, 0),
   };
 
@@ -471,7 +482,7 @@ export default function TenderingRFQ() {
                   <SelectItem value="vendor_responded">Quotes Submitted</SelectItem>
                   <SelectItem value="evaluation">Under Evaluation</SelectItem>
                   <SelectItem value="pending_cxo_award_approval">Pending CXO Award</SelectItem>
-                  <SelectItem value="awarded">Awarded</SelectItem>
+                  <SelectItem value="awarded">Awarded (All)</SelectItem>
                   <SelectItem value="hold">On Hold</SelectItem>
                   <SelectItem value="rejected">Rejected</SelectItem>
                   <SelectItem value="renegotiation_required">Renegotiation Required</SelectItem>
@@ -499,7 +510,7 @@ export default function TenderingRFQ() {
 
           <TabsContent value="awarded">
             <RFQTable 
-              rfqs={filteredRFQs.filter(r => ['awarded', 'po_ready', 'po_created'].includes(r.status))} 
+              rfqs={filteredRFQs.filter(r => ['awarded', 'po_ready', 'po_created', 'APPROVED_BY_BOTH_CXOS', 'AWARD_READY'].includes(r.status))} 
               onSelectRFQ={setSelectedRFQ}
               isAwardedTable={true}
             />
@@ -766,7 +777,7 @@ function RFQDetailView({ rfq, onActionComplete }: { rfq: RFQ; onActionComplete: 
         try {
           const v = rfq.vendors.find((vd: any) => vd.vendorName?.toLowerCase() === user?.name?.toLowerCase() || vd.vendor_name?.toLowerCase() === user?.name?.toLowerCase() || (user?.email && user.email === 'ayush27shaw@gmail.com'));
           const vId = v ? (v.vendorId || v.vendor_id) : user?.id;
-          const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/rfqs/${rfq.id}/live-bids/?vendor_id=${vId || ''}`, {
+          const res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/rfqs/${rfq.id}/live-bids/?vendor_id=${vId || ''}`, {
             headers: token ? { 'Authorization': `Bearer ${token}` } : {}
           });
           if (res.ok) {
@@ -810,7 +821,7 @@ function RFQDetailView({ rfq, onActionComplete }: { rfq: RFQ; onActionComplete: 
     const fetchVendors = async () => {
       try {
         const token = localStorage.getItem('campusspend_token');
-        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/vendors/`, {
+        const res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/vendors/`, {
           headers: token ? { 'Authorization': `Bearer ${token}` } : {}
         });
         if (res.ok) {
@@ -888,7 +899,7 @@ function RFQDetailView({ rfq, onActionComplete }: { rfq: RFQ; onActionComplete: 
       const tax = base * (parseFloat(taxPercent) / 100);
       const total = base + tax;
 
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/quotations/`, {
+      const res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/quotations/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -929,7 +940,7 @@ function RFQDetailView({ rfq, onActionComplete }: { rfq: RFQ; onActionComplete: 
     try {
       const token = localStorage.getItem('campusspend_token');
       const overall = Math.round((editTechScore + editCommScore) / 2);
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/quotations/${editingQuoteId}/`, {
+      const res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/quotations/${editingQuoteId}/`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -967,7 +978,7 @@ function RFQDetailView({ rfq, onActionComplete }: { rfq: RFQ; onActionComplete: 
     setFinalizingAward(true);
     try {
       const token = localStorage.getItem('campusspend_token');
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/rfqs/${rfq.id}/finalize-award/`, {
+      const res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/rfqs/${rfq.id}/finalize-award/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -997,7 +1008,7 @@ function RFQDetailView({ rfq, onActionComplete }: { rfq: RFQ; onActionComplete: 
     setProcessingApproval(true);
     try {
       const token = localStorage.getItem('campusspend_token');
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/rfqs/${rfq.id}/award-and-create-po/`, {
+      const res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/rfqs/${rfq.id}/award-and-create-po/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1041,7 +1052,7 @@ function RFQDetailView({ rfq, onActionComplete }: { rfq: RFQ; onActionComplete: 
 
       if (user?.role === 'procurement_manager' && selectedQuoteId) {
         const token = localStorage.getItem('campusspend_token');
-        const finalizeRes = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/rfqs/${rfq.id}/finalize-award/`, {
+        const finalizeRes = await fetch(`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/rfqs/${rfq.id}/finalize-award/`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -1179,7 +1190,7 @@ function RFQDetailView({ rfq, onActionComplete }: { rfq: RFQ; onActionComplete: 
             try {
               toast({ title: 'Download Started', description: 'Downloading Evaluation Report...' });
               await downloadFile(
-                `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/rfqs/${rfq.id}/download-evaluation-report/`,
+                `${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/rfqs/${rfq.id}/download-evaluation-report/`,
                 `Evaluation_Report_${rfq.id}.pdf`,
                 token || ''
               );
@@ -1197,7 +1208,7 @@ function RFQDetailView({ rfq, onActionComplete }: { rfq: RFQ; onActionComplete: 
             try {
               toast({ title: 'Download Started', description: 'Downloading Recommendation PDF...' });
               await downloadFile(
-                `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/rfqs/${rfq.id}/download-recommendation-history/`,
+                `${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/rfqs/${rfq.id}/download-recommendation-history/`,
                 `Recommendation_History_${rfq.id}.pdf`,
                 token || ''
               );
@@ -1215,7 +1226,7 @@ function RFQDetailView({ rfq, onActionComplete }: { rfq: RFQ; onActionComplete: 
             try {
               toast({ title: 'Download Started', description: 'Downloading Audit Trail PDF...' });
               await downloadFile(
-                `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/rfqs/${rfq.id}/download-audit-trail/`,
+                `${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/rfqs/${rfq.id}/download-audit-trail/`,
                 `Audit_Trail_${rfq.id}.pdf`,
                 token || ''
               );
@@ -1874,7 +1885,7 @@ function CreateRFQForm({ initialIndentId, onClose }: { initialIndentId?: string;
     const fetchApprovedIndents = async () => {
       try {
         const token = localStorage.getItem('campusspend_token');
-        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/requisitions/indents/`, {
+        const res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/requisitions/indents/`, {
           headers: token ? { 'Authorization': `Bearer ${token}` } : {}
         });
         if (res.ok) {
@@ -1890,7 +1901,7 @@ function CreateRFQForm({ initialIndentId, onClose }: { initialIndentId?: string;
     const fetchVendors = async () => {
       try {
         const token = localStorage.getItem('campusspend_token');
-        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/vendors/`, {
+        const res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/vendors/`, {
           headers: token ? { 'Authorization': `Bearer ${token}` } : {}
         });
         if (res.ok) {
@@ -1932,7 +1943,7 @@ function CreateRFQForm({ initialIndentId, onClose }: { initialIndentId?: string;
         .filter(v => selectedVendors.includes(v.id))
         .map(v => ({ vendor_id: v.id, vendor_name: v.name }));
 
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/rfqs/`, {
+      const res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/rfqs/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1956,7 +1967,7 @@ function CreateRFQForm({ initialIndentId, onClose }: { initialIndentId?: string;
 
       if (res.ok) {
         // Now publish it so vendors get the email!
-        const publishRes = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/rfqs/${rfqId}/publish/`, {
+        const publishRes = await fetch(`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/rfqs/${rfqId}/publish/`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

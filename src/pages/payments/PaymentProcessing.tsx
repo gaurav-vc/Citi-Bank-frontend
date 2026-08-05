@@ -172,7 +172,7 @@ export default function PaymentProcessing() {
     setIsLoading(true);
     try {
       const token = localStorage.getItem('campusspend_token');
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/payments/`, {
+      const res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/payments/`, {
         headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
       if (res.ok) {
@@ -233,7 +233,7 @@ export default function PaymentProcessing() {
 
     try {
       await downloadFile(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/payments/export/?format=xlsx`,
+        `${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/payments/export/?format=xlsx`,
         `payments_export_${Date.now()}.xlsx`,
         token || ''
       );
@@ -591,7 +591,7 @@ function PaymentProposalTable({
                               size="sm"
                               onClick={async () => {
                                 const token = localStorage.getItem('campusspend_token');
-                                await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/payments/${proposal.id}/`, {
+                                await fetch(`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/payments/${proposal.id}/`, {
                                   method: 'PATCH',
                                   headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
                                   body: JSON.stringify({ status: 'approved' })
@@ -606,7 +606,7 @@ function PaymentProposalTable({
                               size="sm"
                               onClick={async () => {
                                 const token = localStorage.getItem('campusspend_token');
-                                await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/payments/${proposal.id}/`, {
+                                await fetch(`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/payments/${proposal.id}/`, {
                                   method: 'PATCH',
                                   headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
                                   body: JSON.stringify({ status: 'rejected' })
@@ -645,7 +645,7 @@ function PaymentProposalTable({
                                     const utrNumber = (document.getElementById(`utr-${proposal.id}`) as HTMLInputElement)?.value;
                                     try {
                                       const token = localStorage.getItem('campusspend_token');
-                                      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/payments/${proposal.id}/process/`, {
+                                      const res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/payments/${proposal.id}/process/`, {
                                         method: 'POST',
                                         headers: {
                                           'Content-Type': 'application/json',
@@ -894,14 +894,14 @@ function CreatePaymentProposalForm({
     const fetchData = async () => {
       try {
         const token = localStorage.getItem('campusspend_token');
-        const vRes = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/payments/eligible-vendors/`, {
+        const vRes = await fetch(`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/payments/eligible-vendors/`, {
           headers: token ? { 'Authorization': `Bearer ${token}` } : {}
         });
         if (vRes.ok) {
           const data = await vRes.json();
           setVendorsList(data);
         }
-        const iRes = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/invoices/`, {
+        const iRes = await fetch(`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/invoices/`, {
           headers: token ? { 'Authorization': `Bearer ${token}` } : {}
         });
         if (iRes.ok) {
@@ -1004,7 +1004,7 @@ function CreatePaymentProposalForm({
 
     try {
       const token = localStorage.getItem('campusspend_token');
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/payments/`, {
+      const res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/payments/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1204,7 +1204,7 @@ function PaymentProposalDetailView({
     setLoading(true);
     try {
       const token = localStorage.getItem('campusspend_token');
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/payments/${proposal.id}/`, {
+      const res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/payments/${proposal.id}/`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -1230,7 +1230,7 @@ function PaymentProposalDetailView({
     setLoading(true);
     try {
       const token = localStorage.getItem('campusspend_token');
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/payments/${proposal.id}/process/`, {
+      const res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/payments/${proposal.id}/process/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1396,7 +1396,7 @@ function PaymentProposalDetailView({
                     const utrNumber = (document.getElementById(`detail-utr-${proposal.id}`) as HTMLInputElement)?.value;
                     try {
                       const token = localStorage.getItem('campusspend_token');
-                      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/payments/${proposal.id}/process/`, {
+                      const res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/payments/${proposal.id}/process/`, {
                         method: 'POST',
                         headers: {
                           'Content-Type': 'application/json',

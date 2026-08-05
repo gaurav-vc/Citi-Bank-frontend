@@ -59,7 +59,7 @@ export default function BillingInvoices() {
     setIsLoading(true);
     try {
       const token = localStorage.getItem('campusspend_token');
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/invoices/`, {
+      const res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/invoices/`, {
         headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
       if (res.ok) {
@@ -100,7 +100,7 @@ export default function BillingInvoices() {
 
     try {
       await downloadFile(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/invoices/export/?format=xlsx`,
+        `${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/invoices/export/?format=xlsx`,
         `invoices_export_${Date.now()}.xlsx`,
         token || ''
       );
@@ -132,7 +132,7 @@ export default function BillingInvoices() {
 
     try {
       const token = localStorage.getItem('campusspend_token');
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/invoices/import/`, {
+      const res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/invoices/import/`, {
         method: 'POST',
         headers: token ? { 'Authorization': `Bearer ${token}` } : {},
         body: formData,
@@ -172,7 +172,7 @@ export default function BillingInvoices() {
         ...(token ? { 'Authorization': `Bearer ${token}` } : {})
       };
       
-      const tlRes = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/workflow/timeline/?module=invoices&entity_id=${invoice.id}`, { headers });
+      const tlRes = await fetch(`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/workflow/timeline/?module=invoices&entity_id=${invoice.id}`, { headers });
       if (!tlRes.ok) throw new Error('Failed to fetch workflow timeline');
       const tlData = await tlRes.json();
       
@@ -185,7 +185,7 @@ export default function BillingInvoices() {
         throw new Error('No pending workflow step found for your role.');
       }
       
-      const actionRes = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/workflow/action_step/`, {
+      const actionRes = await fetch(`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/workflow/action_step/`, {
         method: 'POST',
         headers,
         body: JSON.stringify({ step_id: activeStep.id, action })
@@ -297,7 +297,10 @@ export default function BillingInvoices() {
 
         {/* Stats */}
         <div className="grid gap-4 md:grid-cols-5">
-          <Card>
+          <Card 
+            className={`cursor-pointer transition-colors hover:bg-muted/50 ${statusFilter === 'all' ? 'border-primary ring-1 ring-primary' : ''}`}
+            onClick={() => setStatusFilter('all')}
+          >
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -308,7 +311,10 @@ export default function BillingInvoices() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card 
+            className={`cursor-pointer transition-colors hover:bg-muted/50 ${statusFilter === 'pending' ? 'border-warning ring-1 ring-warning' : ''}`}
+            onClick={() => setStatusFilter('pending')}
+          >
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -319,7 +325,10 @@ export default function BillingInvoices() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card 
+            className={`cursor-pointer transition-colors hover:bg-muted/50 ${statusFilter === 'verified' ? 'border-info ring-1 ring-info' : ''}`}
+            onClick={() => setStatusFilter('verified')}
+          >
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -330,7 +339,10 @@ export default function BillingInvoices() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card 
+            className={`cursor-pointer transition-colors hover:bg-muted/50 ${statusFilter === 'approved' ? 'border-success ring-1 ring-success' : ''}`}
+            onClick={() => setStatusFilter('approved')}
+          >
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -348,7 +360,7 @@ export default function BillingInvoices() {
                   <p className="text-sm text-muted-foreground">Pending Amount</p>
                   <p className="text-2xl font-bold">{formatCurrency(invoiceStats.pendingAmount)}</p>
                 </div>
-                <DollarSign className="h-8 w-8 text-primary/20" />
+                <DollarSign className="h-8 w-8 text-muted-foreground/20" />
               </div>
             </CardContent>
           </Card>
@@ -482,7 +494,7 @@ export default function BillingInvoices() {
                                       <DropdownMenuItem onClick={async () => {
                                         try {
                                           const token = localStorage.getItem('campusspend_token');
-                                          const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/invoices/${invoice.id}/`, {
+                                          const res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/invoices/${invoice.id}/`, {
                                             method: 'PATCH',
                                             headers: {
                                               'Content-Type': 'application/json',
@@ -505,7 +517,7 @@ export default function BillingInvoices() {
                                         <DropdownMenuItem onClick={async () => {
                                           try {
                                             const token = localStorage.getItem('campusspend_token');
-                                            const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/invoices/${invoice.id}/`, {
+                                            const res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/invoices/${invoice.id}/`, {
                                               method: 'PATCH',
                                               headers: {
                                                 'Content-Type': 'application/json',
@@ -527,7 +539,20 @@ export default function BillingInvoices() {
                                       )}
                                     </>
                                   )}
-                                  <DropdownMenuItem>
+                                  <DropdownMenuItem onClick={async () => {
+                                    try {
+                                      const token = localStorage.getItem('campusspend_token');
+                                      const { downloadFile } = await import('@/utils/downloadFile');
+                                      await downloadFile(
+                                        `${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/invoices/${invoice.id}/download/`,
+                                        `Invoice_${invoice.id}.pdf`,
+                                        token || ''
+                                      );
+                                      toast({ title: 'Download Complete', description: `Invoice ${invoice.id} downloaded successfully.` });
+                                    } catch (err: any) {
+                                      toast({ title: 'Download Failed', description: err.message, variant: 'destructive' });
+                                    }
+                                  }}>
                                     <Download className="h-4 w-4 mr-2" />
                                     Download
                                   </DropdownMenuItem>
@@ -588,7 +613,7 @@ function InvoiceDetails({ invoice, onUpdate }: { invoice: any; onUpdate: () => v
     setLoading(true);
     try {
       const token = localStorage.getItem('campusspend_token');
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/invoices/${invoice.id}/run_match/`, {
+      const res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/invoices/${invoice.id}/run_match/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -616,7 +641,7 @@ function InvoiceDetails({ invoice, onUpdate }: { invoice: any; onUpdate: () => v
     setLoading(true);
     try {
       const token = localStorage.getItem('campusspend_token');
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/invoices/${invoice.id}/override_match/`, {
+      const res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/invoices/${invoice.id}/override_match/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

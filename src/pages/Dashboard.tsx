@@ -207,7 +207,7 @@ export default function Dashboard() {
 
     try {
       await downloadFile(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/reports/export/spend/?format=xlsx`,
+        `${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/reports/export/spend/?format=xlsx`,
         `spend_report_${Date.now()}.xlsx`,
         token || ''
       );

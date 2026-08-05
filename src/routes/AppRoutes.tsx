@@ -39,6 +39,7 @@ import PaymentProcessing from '@/pages/payments/PaymentProcessing';
 import ExpenseManagement from '@/pages/expenses/ExpenseManagement';
 import Reports from '@/pages/Reports';
 import AIInsights from '@/pages/AIInsights';
+import ComingSoon from '@/pages/ComingSoon';
 import NotFound from '../pages/NotFound';
 import QCChecklists from '@/pages/qc/QCChecklists';
 import ChangePassword from '@/pages/ChangePassword';
@@ -148,15 +149,15 @@ export function AppRoutes() {
         path="/masters/budget"
         element={
           <ProtectedRoute>
-            <OrganizationRoute>
-              <PermissionRoute
-                roles={['super_admin', 'finance_executive', 'finance_manager', 'facility_manager', 'project_head', 'cxo']}
-                permissionKey="procurement:budgets"
-                action="view"
-              >
+            <PermissionRoute
+              roles={['super_admin', 'finance_executive', 'finance_manager', 'facility_manager', 'project_head', 'cxo']}
+              permissionKey="procurement:budgets"
+              action="view"
+            >
+              <OrganizationRoute>
                 <BudgetMaster />
-              </PermissionRoute>
-            </OrganizationRoute>
+              </OrganizationRoute>
+            </PermissionRoute>
           </ProtectedRoute>
         }
       />
@@ -375,6 +376,10 @@ export function AppRoutes() {
 
 
 
+      <Route
+        path="/requisitions"
+        element={<Navigate to="/requisitions/all" replace />}
+      />
       <Route
         path="/requisitions/create"
         element={
@@ -617,7 +622,7 @@ export function AppRoutes() {
         path="/inventory/issue"
         element={
           <ProtectedRoute>
-            <PermissionRoute roles={['super_admin', 'store_keeper', 'site_manager', 'facility_manager', 'project_head', 'cxo']} permissionKey="procurement:inventory">
+            <PermissionRoute roles={['super_admin', 'store_keeper', 'site_keeper', 'site_manager', 'facility_manager', 'project_head', 'cxo']} permissionKey="procurement:inventory_issue">
               <IssueToSite />
             </PermissionRoute>
           </ProtectedRoute>
@@ -801,6 +806,36 @@ export function AppRoutes() {
           <ProtectedRoute>
             <PermissionRoute roles={['super_admin', 'procurement_manager', 'finance_manager', 'facility_manager', 'project_head', 'cxo']} permissionKey="procurement:ai">
               <AIInsights />
+            </PermissionRoute>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/reports/inventory"
+        element={
+          <ProtectedRoute>
+            <PermissionRoute roles={['super_admin', 'procurement_manager', 'finance_manager', 'facility_manager', 'project_head', 'cxo']} permissionKey="procurement:reports">
+              <ComingSoon />
+            </PermissionRoute>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/reports/invoices"
+        element={
+          <ProtectedRoute>
+            <PermissionRoute roles={['super_admin', 'procurement_manager', 'finance_manager', 'facility_manager', 'project_head', 'cxo']} permissionKey="procurement:reports">
+              <ComingSoon />
+            </PermissionRoute>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/reports/audit"
+        element={
+          <ProtectedRoute>
+            <PermissionRoute roles={['super_admin', 'procurement_manager', 'finance_manager', 'facility_manager', 'project_head', 'cxo']} permissionKey="procurement:reports">
+              <ComingSoon />
             </PermissionRoute>
           </ProtectedRoute>
         }

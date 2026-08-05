@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { toast } from '@/hooks/use-toast';
+import { usePagination } from '@/hooks/usePagination';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
+import { DataTablePagination } from '@/components/ui/data-table-pagination';
 import { 
   Plus, Search, Filter, Package, Wrench, Droplets, AlertTriangle,
   Edit, Trash2, Download, Upload
@@ -86,7 +88,7 @@ export default function ItemMaster() {
 
     try {
       await downloadFile(
-        `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/inventory/items/export/?format=xlsx`,
+        `${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/inventory/items/export/?format=xlsx`,
         `items_export_${Date.now()}.xlsx`,
         token || ''
       );
@@ -118,7 +120,7 @@ export default function ItemMaster() {
 
     try {
       const token = localStorage.getItem('campusspend_token');
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/inventory/items/import/`, {
+      const res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/inventory/import/`, {
         method: 'POST',
         headers: token ? { 'Authorization': `Bearer ${token}` } : {},
         body: formData,
@@ -158,6 +160,55 @@ export default function ItemMaster() {
     return matchesSearch && matchesType && matchesCategory;
   });
 
+  const {
+    currentPage: allCurrentPage,
+    totalPages: allTotalPages,
+    paginatedData: allPaginatedData,
+    goToPage: allGoToPage,
+    nextPage: allNextPage,
+    prevPage: allPrevPage,
+  } = usePagination({ data: filteredItems, itemsPerPage: 10 });
+
+  const sparesData = filteredItems.filter(i => i.type === 'spare');
+  const {
+    currentPage: sparesCurrentPage,
+    totalPages: sparesTotalPages,
+    paginatedData: sparesPaginatedData,
+    goToPage: sparesGoToPage,
+    nextPage: sparesNextPage,
+    prevPage: sparesPrevPage,
+  } = usePagination({ data: sparesData, itemsPerPage: 10 });
+
+  const consumablesData = filteredItems.filter(i => i.type === 'consumable');
+  const {
+    currentPage: consumablesCurrentPage,
+    totalPages: consumablesTotalPages,
+    paginatedData: consumablesPaginatedData,
+    goToPage: consumablesGoToPage,
+    nextPage: consumablesNextPage,
+    prevPage: consumablesPrevPage,
+  } = usePagination({ data: consumablesData, itemsPerPage: 10 });
+
+  const servicesData = filteredItems.filter(i => i.type === 'service');
+  const {
+    currentPage: servicesCurrentPage,
+    totalPages: servicesTotalPages,
+    paginatedData: servicesPaginatedData,
+    goToPage: servicesGoToPage,
+    nextPage: servicesNextPage,
+    prevPage: servicesPrevPage,
+  } = usePagination({ data: servicesData, itemsPerPage: 10 });
+
+  const lowStockData = filteredItems.filter(i => i.type !== 'service' && i.currentStock <= i.minStockLevel);
+  const {
+    currentPage: lowStockCurrentPage,
+    totalPages: lowStockTotalPages,
+    paginatedData: lowStockPaginatedData,
+    goToPage: lowStockGoToPage,
+    nextPage: lowStockNextPage,
+    prevPage: lowStockPrevPage,
+  } = usePagination({ data: lowStockData, itemsPerPage: 10 });
+
   const stats = {
     total: items.length,
     spares: items.filter(i => i.type === 'spare').length,
@@ -183,6 +234,21 @@ export default function ItemMaster() {
               id="item-import-input"
               onChange={handleImport}
             />
+            <Button variant="outline" onClick={() => {
+              const headers = ['id', 'name', 'type', 'category', 'uom', 'min_stock_level', 'reorder_level', 'current_stock', 'preferred_vendor', 'unit_price'];
+              const csvContent = headers.join(',') + '\n';
+              const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+              const url = URL.createObjectURL(blob);
+              const link = document.createElement('a');
+              link.href = url;
+              link.setAttribute('download', `item_import_template.csv`);
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+            }}>
+              <Download className="h-4 w-4 mr-2" />
+              Template
+            </Button>
             <Button variant="outline" onClick={() => document.getElementById('item-import-input')?.click()}>
               <Upload className="h-4 w-4 mr-2" />
               Import
@@ -317,19 +383,54 @@ export default function ItemMaster() {
           </div>
 
           <TabsContent value="all">
-            <ItemTable items={filteredItems} />
+            <ItemTable items={allPaginatedData} />
+            <DataTablePagination
+              currentPage={allCurrentPage}
+              totalPages={allTotalPages}
+              onPageChange={allGoToPage}
+              onNextPage={allNextPage}
+              onPrevPage={allPrevPage}
+            />
           </TabsContent>
           <TabsContent value="spares">
-            <ItemTable items={filteredItems.filter(i => i.type === 'spare')} />
+            <ItemTable items={sparesPaginatedData} />
+            <DataTablePagination
+              currentPage={sparesCurrentPage}
+              totalPages={sparesTotalPages}
+              onPageChange={sparesGoToPage}
+              onNextPage={sparesNextPage}
+              onPrevPage={sparesPrevPage}
+            />
           </TabsContent>
           <TabsContent value="consumables">
-            <ItemTable items={filteredItems.filter(i => i.type === 'consumable')} />
+            <ItemTable items={consumablesPaginatedData} />
+            <DataTablePagination
+              currentPage={consumablesCurrentPage}
+              totalPages={consumablesTotalPages}
+              onPageChange={consumablesGoToPage}
+              onNextPage={consumablesNextPage}
+              onPrevPage={consumablesPrevPage}
+            />
           </TabsContent>
           <TabsContent value="services">
-            <ItemTable items={filteredItems.filter(i => i.type === 'service')} />
+            <ItemTable items={servicesPaginatedData} />
+            <DataTablePagination
+              currentPage={servicesCurrentPage}
+              totalPages={servicesTotalPages}
+              onPageChange={servicesGoToPage}
+              onNextPage={servicesNextPage}
+              onPrevPage={servicesPrevPage}
+            />
           </TabsContent>
           <TabsContent value="low-stock">
-            <ItemTable items={filteredItems.filter(i => i.type !== 'service' && i.currentStock <= i.minStockLevel)} />
+            <ItemTable items={lowStockPaginatedData} />
+            <DataTablePagination
+              currentPage={lowStockCurrentPage}
+              totalPages={lowStockTotalPages}
+              onPageChange={lowStockGoToPage}
+              onNextPage={lowStockNextPage}
+              onPrevPage={lowStockPrevPage}
+            />
           </TabsContent>
         </Tabs>
       </div>

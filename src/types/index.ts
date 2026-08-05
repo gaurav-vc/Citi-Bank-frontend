@@ -35,7 +35,7 @@ export interface User {
   avatar?: string;
   department?: string;
   tower?: string;
-  permissions?: Record<string, { view?: boolean; create?: boolean; update?: boolean; delete?: boolean }>;
+  permissions?: Record<string, { view?: boolean; create?: boolean; update?: boolean; delete?: boolean; approve?: boolean }>;
   profile?: UserProfile;
   force_password_change?: boolean;
 }
