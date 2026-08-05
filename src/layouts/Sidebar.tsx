@@ -158,6 +158,7 @@ const pathMap: Record<string, string> = {
   'reports:inventory_reports': '/reports/inventory',
   'reports:invoice_reports': '/reports/invoices',
   'reports:audit_reports': '/reports/audit',
+  'reports:ai': '/ai-insights',
 };
 
 const staticModulesFallback: DBModule[] = [
