@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ import { StatusBadge } from '@/components/ui/status-badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Search, Plus, ChevronDown, ChevronUp } from 'lucide-react';
+import { DataTablePagination } from "@/components/ui/data-table-pagination";
 
 interface SiteItem {
   id: string;
@@ -236,6 +237,8 @@ export default function SiteMaster() {
   // Filter states
   const [searchQuery, setSearchQuery] = useState('');
   const [productTypeFilter, setProductTypeFilter] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 12;
 
   // Form states
   const [formSiteName, setFormSiteName] = useState('VC - Demo');
@@ -282,6 +285,10 @@ export default function SiteMaster() {
                                (productTypeFilter === 'none' && site.productType === '-');
     return matchesSearch && matchesProductType;
   });
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filteredSites.length]);
 
   const handleSelectAllModules = (checked: boolean) => {
     const next: Record<string, boolean> = {};
@@ -403,7 +410,7 @@ export default function SiteMaster() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredSites.map((site) => (
+                    {filteredSites.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((site) => (
                       <TableRow key={site.id} className="border-b border-border/30 hover:bg-muted/10 transition-colors">
                         <TableCell className="py-3 px-4 font-medium text-foreground">{site.id}</TableCell>
                         <TableCell className="py-3 px-4 text-muted-foreground">{site.company}</TableCell>
@@ -448,6 +455,17 @@ export default function SiteMaster() {
                     )}
                   </TableBody>
                 </Table>
+                {filteredSites.length > PAGE_SIZE && (
+                  <div className="p-4 border-t border-slate-200 dark:border-slate-800">
+                    <DataTablePagination
+                      currentPage={currentPage}
+                      totalPages={Math.ceil(filteredSites.length / PAGE_SIZE)}
+                      onPageChange={setCurrentPage}
+                      onNextPage={() => setCurrentPage((p) => Math.min(Math.ceil(filteredSites.length / PAGE_SIZE), p + 1))}
+                      onPrevPage={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    />
+                  </div>
+                )}
               </div>
             </Card>
           </>

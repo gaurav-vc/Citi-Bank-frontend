@@ -44,6 +44,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Vendor } from '@/types';
+import { DataTablePagination } from "@/components/ui/data-table-pagination";
 
 
 const vendorTypes = ['material', 'service', 'amc', 'soft_services'];
@@ -58,12 +59,18 @@ export default function VendorMaster() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
   const [editingVendor, setEditingVendor] = useState<any | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 12;
 
   const dynamicCategories = Array.from(new Set(vendors.map(v => v.category).filter(Boolean)));
 
   useEffect(() => {
     fetchVendors();
   }, []);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter, categoryFilter]);
 
   const fetchVendors = async () => {
     try {
@@ -456,7 +463,7 @@ export default function VendorMaster() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredVendors.map((vendor) => (
+                  {filteredVendors.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((vendor) => (
                     <tr key={vendor.id} className="border-b hover:bg-muted/50 transition-colors">
                       <td className="py-4 px-4">
                         <div>
@@ -572,6 +579,17 @@ export default function VendorMaster() {
                   ))}
                 </tbody>
               </table>
+              {filteredVendors.length > PAGE_SIZE && (
+                <div className="p-4 border-t border-slate-200 dark:border-slate-800">
+                  <DataTablePagination
+                    currentPage={currentPage}
+                    totalPages={Math.ceil(filteredVendors.length / PAGE_SIZE)}
+                    onPageChange={setCurrentPage}
+                    onNextPage={() => setCurrentPage((p) => Math.min(Math.ceil(filteredVendors.length / PAGE_SIZE), p + 1))}
+                    onPrevPage={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  />
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

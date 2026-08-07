@@ -38,6 +38,9 @@ import { PurchaseOrder } from '@/types';
 import { downloadFile } from '@/utils/downloadFile';
 import { useAuth } from '@/contexts/AuthContext';
 import { WorkflowContainer } from '@/components/workflow/WorkflowContainer';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
+import { DataTablePagination } from "@/components/ui/data-table-pagination";
 import { ordersAPI } from '@/api/orders';
 import { api } from '@/api/client';
 
@@ -241,8 +244,11 @@ export default function PurchaseOrders() {
     }
   };
   const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [dateRange, setDateRange] = useState<any>();
+  const [vendorFilter, setVendorFilter] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 12;
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [vendorFilter, setVendorFilter] = useState<string>('all');
   const [selectedPO, setSelectedPO] = useState<PurchaseOrder | null>(null);
 
   useEffect(() => {
@@ -272,6 +278,7 @@ export default function PurchaseOrders() {
   });
 
   const uniqueVendors = Array.from(new Set(purchaseOrders.map((po) => po.vendorName).filter(Boolean))).sort();
+  const uniqueStatuses = Array.from(new Set(purchaseOrders.map((po) => po.status).filter(Boolean))).sort();
 
   const poStats = {
     total: purchaseOrders.length,
@@ -396,11 +403,11 @@ export default function PurchaseOrders() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="draft">Draft</SelectItem>
-                  <SelectItem value="approved">Approved</SelectItem>
-                  <SelectItem value="in_progress">In Progress</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                  {uniqueStatuses.map((status: any) => (
+                    <SelectItem key={status} value={status}>
+                      {status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, ' ')}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -425,7 +432,7 @@ export default function PurchaseOrders() {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredOrders.map((po) => {
+                      {filteredOrders.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((po) => {
                         const deliveredValue = po.items.reduce(
                           (sum, item) => sum + (item.deliveredQty / item.quantity) * 100,
                           0
@@ -542,6 +549,17 @@ export default function PurchaseOrders() {
                     </tbody>
                   </table>
                 </div>
+                {filteredOrders.length > PAGE_SIZE && (
+                  <div className="p-4 border-t border-slate-200 dark:border-slate-800">
+                    <DataTablePagination
+                      currentPage={currentPage}
+                      totalPages={Math.ceil(filteredOrders.length / PAGE_SIZE)}
+                      onPageChange={setCurrentPage}
+                      onNextPage={() => setCurrentPage((p) => Math.min(Math.ceil(filteredOrders.length / PAGE_SIZE), p + 1))}
+                      onPrevPage={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    />
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>

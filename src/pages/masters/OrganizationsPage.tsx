@@ -5,6 +5,7 @@ import { api } from "@/lib/api";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { allCountries, locationTree } from "@/utils/constants";
 import { Eye, Edit, Trash2 } from "lucide-react";
+import { DataTablePagination } from "@/components/ui/data-table-pagination";
 
 // We will compute hierarchical lists dynamically below.
 
@@ -17,6 +18,8 @@ export default function OrganizationsPage() {
   const [stateName, setStateName] = useState("");
   const [city, setCity] = useState("");
   const [zone, setZone] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 12;
 
   const { data: orgsData = [], isLoading: isOrgsLoading } = useQuery({
     queryKey: ["organizations"],
@@ -130,7 +133,7 @@ export default function OrganizationsPage() {
   };
 
   const renderRows = useMemo(() => {
-    return filteredRows.map((row) => {
+    return filteredRows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((row) => {
       const totalSites = sites.filter((s) => s.organization === row.id).length;
       const formattedDate = row.created_at
         ? new Date(row.created_at).toLocaleString("en-GB", {
@@ -192,7 +195,11 @@ export default function OrganizationsPage() {
         </tr>
       );
     });
-  }, [filteredRows, sites, navigate]);
+  }, [filteredRows, sites, navigate, currentPage]);
+
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [filteredRows.length]);
 
   return (
     <MainLayout>
@@ -311,6 +318,17 @@ export default function OrganizationsPage() {
               </tr>
             ) : renderRows}</tbody>
           </table>
+          {filteredRows.length > PAGE_SIZE && (
+            <div className="p-4 border-t border-slate-200 dark:border-slate-800">
+              <DataTablePagination
+                currentPage={currentPage}
+                totalPages={Math.ceil(filteredRows.length / PAGE_SIZE)}
+                onPageChange={setCurrentPage}
+                onNextPage={() => setCurrentPage((p) => Math.min(Math.ceil(filteredRows.length / PAGE_SIZE), p + 1))}
+                onPrevPage={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              />
+            </div>
+          )}
         </section>
       </section>
     </MainLayout>

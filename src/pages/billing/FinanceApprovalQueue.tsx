@@ -8,11 +8,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { ClipboardCheck, CheckCircle, XCircle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { DataTablePagination } from "@/components/ui/data-table-pagination";
 
 export default function FinanceApprovalQueue() {
   const { user } = useAuth();
   const [approvals, setApprovals] = useState<any[]>([]);
   const [remarks, setRemarks] = useState<{ [key: string]: string }>({});
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 12;
 
   useEffect(() => {
     fetchApprovals();
@@ -130,7 +133,7 @@ export default function FinanceApprovalQueue() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  approvals.map((app) => (
+                  approvals.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((app) => (
                     <TableRow key={app.id}>
                       <TableCell>
                         <Badge variant="outline" className="capitalize">
@@ -165,6 +168,17 @@ export default function FinanceApprovalQueue() {
                 )}
               </TableBody>
             </Table>
+            {approvals.length > PAGE_SIZE && (
+              <div className="p-4 border-t border-slate-200 dark:border-slate-800">
+                <DataTablePagination
+                  currentPage={currentPage}
+                  totalPages={Math.ceil(approvals.length / PAGE_SIZE)}
+                  onPageChange={setCurrentPage}
+                  onNextPage={() => setCurrentPage((p) => Math.min(Math.ceil(approvals.length / PAGE_SIZE), p + 1))}
+                  onPrevPage={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                />
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

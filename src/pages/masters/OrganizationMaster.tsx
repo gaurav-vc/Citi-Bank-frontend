@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { CalendarIcon } from 'lucide-react';
+import { DataTablePagination } from "@/components/ui/data-table-pagination";
 
 interface OrganizationItem {
   id: string;
@@ -220,6 +221,8 @@ export default function OrganizationMaster() {
   const [stateFilter, setStateFilter] = useState('all');
   const [cityFilter, setCityFilter] = useState('all');
   const [zoneFilter, setZoneFilter] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 12;
 
   // Form states
   const [formOrgName, setFormOrgName] = useState('Acme Corporation');
@@ -278,8 +281,12 @@ export default function OrganizationMaster() {
     const matchesSearch = org.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           org.companyName.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           org.entityName.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesSearch;
+    return true;
   });
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filteredOrgs.length]);
 
   return (
     <MainLayout>
@@ -422,7 +429,7 @@ export default function OrganizationMaster() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredOrgs.map((org) => (
+                    {filteredOrgs.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((org) => (
                       <TableRow key={org.id} className="border-b border-border/30 hover:bg-muted/10 transition-colors">
                         <TableCell className="py-3 px-4 font-medium text-foreground">{org.name}</TableCell>
                         <TableCell className="py-3 px-4 text-muted-foreground">{org.companyName}</TableCell>
@@ -454,6 +461,17 @@ export default function OrganizationMaster() {
                     )}
                   </TableBody>
                 </Table>
+                {filteredOrgs.length > PAGE_SIZE && (
+                  <div className="p-4 border-t border-slate-200 dark:border-slate-800">
+                    <DataTablePagination
+                      currentPage={currentPage}
+                      totalPages={Math.ceil(filteredOrgs.length / PAGE_SIZE)}
+                      onPageChange={setCurrentPage}
+                      onNextPage={() => setCurrentPage((p) => Math.min(Math.ceil(filteredOrgs.length / PAGE_SIZE), p + 1))}
+                      onPrevPage={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    />
+                  </div>
+                )}
               </div>
             </Card>
           </>

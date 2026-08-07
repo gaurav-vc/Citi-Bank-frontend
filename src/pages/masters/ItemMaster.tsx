@@ -66,6 +66,23 @@ export default function ItemMaster() {
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<Item | null>(null);
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this item?')) return;
+    try {
+      await inventoryAPI.deleteItem(id);
+      toast({ title: 'Success', description: 'Item deleted successfully' });
+      fetchItems();
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message || 'Failed to delete item', variant: 'destructive' });
+    }
+  };
+
+  const handleEdit = (item: Item) => {
+    setEditingItem(item);
+    setIsCreateOpen(true);
+  };
 
   useEffect(() => {
     fetchItems();
@@ -88,7 +105,7 @@ export default function ItemMaster() {
 
     try {
       await downloadFile(
-        `${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/inventory/items/export/?format=xlsx`,
+        `${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/items/export/?format=xlsx`,
         `items_export_${Date.now()}.xlsx`,
         token || ''
       );
@@ -257,19 +274,29 @@ export default function ItemMaster() {
               <Download className="h-4 w-4 mr-2" />
               Export
             </Button>
-            <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+            <Dialog open={isCreateOpen} onOpenChange={(open) => {
+              setIsCreateOpen(open);
+              if (!open) setEditingItem(null);
+            }}>
               <DialogTrigger asChild>
-                <Button>
+                <Button onClick={() => setEditingItem(null)}>
                   <Plus className="h-4 w-4 mr-2" />
                   Add Item
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-2xl">
                 <DialogHeader>
-                  <DialogTitle>Add New Item/Service</DialogTitle>
+                  <DialogTitle>{editingItem ? 'Edit Item/Service' : 'Add New Item/Service'}</DialogTitle>
             <DialogDescription className="text-sm text-muted-foreground">Manage add new item/service details and actions here.</DialogDescription>
                 </DialogHeader>
-                <CreateItemForm onClose={() => setIsCreateOpen(false)} onSuccess={fetchItems} />
+                <CreateItemForm 
+                  initialData={editingItem}
+                  onClose={() => {
+                    setIsCreateOpen(false);
+                    setEditingItem(null);
+                  }} 
+                  onSuccess={fetchItems} 
+                />
               </DialogContent>
             </Dialog>
           </div>
@@ -383,7 +410,7 @@ export default function ItemMaster() {
           </div>
 
           <TabsContent value="all">
-            <ItemTable items={allPaginatedData} />
+            <ItemTable items={allPaginatedData} onEdit={handleEdit} onDelete={handleDelete} />
             <DataTablePagination
               currentPage={allCurrentPage}
               totalPages={allTotalPages}
@@ -393,7 +420,7 @@ export default function ItemMaster() {
             />
           </TabsContent>
           <TabsContent value="spares">
-            <ItemTable items={sparesPaginatedData} />
+            <ItemTable items={sparesPaginatedData} onEdit={handleEdit} onDelete={handleDelete} />
             <DataTablePagination
               currentPage={sparesCurrentPage}
               totalPages={sparesTotalPages}
@@ -403,7 +430,7 @@ export default function ItemMaster() {
             />
           </TabsContent>
           <TabsContent value="consumables">
-            <ItemTable items={consumablesPaginatedData} />
+            <ItemTable items={consumablesPaginatedData} onEdit={handleEdit} onDelete={handleDelete} />
             <DataTablePagination
               currentPage={consumablesCurrentPage}
               totalPages={consumablesTotalPages}
@@ -413,7 +440,7 @@ export default function ItemMaster() {
             />
           </TabsContent>
           <TabsContent value="services">
-            <ItemTable items={servicesPaginatedData} />
+            <ItemTable items={servicesPaginatedData} onEdit={handleEdit} onDelete={handleDelete} />
             <DataTablePagination
               currentPage={servicesCurrentPage}
               totalPages={servicesTotalPages}
@@ -423,7 +450,7 @@ export default function ItemMaster() {
             />
           </TabsContent>
           <TabsContent value="low-stock">
-            <ItemTable items={lowStockPaginatedData} />
+            <ItemTable items={lowStockPaginatedData} onEdit={handleEdit} onDelete={handleDelete} />
             <DataTablePagination
               currentPage={lowStockCurrentPage}
               totalPages={lowStockTotalPages}
@@ -438,7 +465,7 @@ export default function ItemMaster() {
   );
 }
 
-function ItemTable({ items }: { items: Item[] }) {
+function ItemTable({ items, onEdit, onDelete }: { items: Item[]; onEdit: (item: Item) => void; onDelete: (id: string) => void }) {
   return (
     <Card>
       <CardContent className="p-0">
@@ -503,10 +530,10 @@ function ItemTable({ items }: { items: Item[] }) {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="sm">
+                        <Button variant="ghost" size="sm" onClick={() => onEdit(item)}>
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="sm" className="text-destructive">
+                        <Button variant="ghost" size="sm" className="text-destructive" onClick={() => onDelete(item.id)}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
@@ -522,15 +549,28 @@ function ItemTable({ items }: { items: Item[] }) {
   );
 }
 
-function CreateItemForm({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
-  const [itemType, setItemType] = useState<string>('spare');
-  const [name, setName] = useState('');
-  const [category, setCategory] = useState('Electrical');
-  const [uom, setUom] = useState('Nos');
-  const [minStock, setMinStock] = useState(0);
-  const [reorderLevel, setReorderLevel] = useState(0);
-  const [unitPrice, setUnitPrice] = useState(0);
-  const [vendor, setVendor] = useState('PowerGrid Solutions');
+function CreateItemForm({ initialData, onClose, onSuccess }: { initialData?: Item | null; onClose: () => void; onSuccess: () => void }) {
+  const [itemType, setItemType] = useState<string>(initialData?.type || 'spare');
+  const [name, setName] = useState(initialData?.name || '');
+  const [category, setCategory] = useState(initialData?.category || 'Electrical');
+  const [uom, setUom] = useState(initialData?.uom || 'Nos');
+  const [minStock, setMinStock] = useState(initialData?.minStockLevel || 0);
+  const [reorderLevel, setReorderLevel] = useState(initialData?.reorderLevel || 0);
+  const [unitPrice, setUnitPrice] = useState(initialData?.unitPrice || 0);
+  const [vendor, setVendor] = useState(initialData?.preferredVendor || 'PowerGrid Solutions');
+
+  useEffect(() => {
+    if (initialData) {
+      setItemType(initialData.type || 'spare');
+      setName(initialData.name || '');
+      setCategory(initialData.category || 'Electrical');
+      setUom(initialData.uom || 'Nos');
+      setMinStock(initialData.minStockLevel || 0);
+      setReorderLevel(initialData.reorderLevel || 0);
+      setUnitPrice(initialData.unitPrice || 0);
+      setVendor(initialData.preferredVendor || 'PowerGrid Solutions');
+    }
+  }, [initialData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -540,26 +580,31 @@ function CreateItemForm({ onClose, onSuccess }: { onClose: () => void; onSuccess
       ...(token ? { 'Authorization': `Bearer ${token}` } : {})
     };
     const body = {
-      id: `ITM-${Date.now()}`,
+      id: initialData ? initialData.id : `ITM-${Date.now()}`,
       name,
       type: itemType,
       category,
       uom,
       min_stock_level: minStock,
       reorder_level: reorderLevel,
-      current_stock: 0,
+      current_stock: initialData ? initialData.currentStock : 0,
       preferred_vendor: vendor,
       unit_price: unitPrice
     };
 
     try {
-      await inventoryAPI.createItem(body);
-      toast({ title: 'Success', description: 'Item created successfully' });
+      if (initialData) {
+        await inventoryAPI.updateItem(initialData.id, body);
+        toast({ title: 'Success', description: 'Item updated successfully' });
+      } else {
+        await inventoryAPI.createItem(body);
+        toast({ title: 'Success', description: 'Item created successfully' });
+      }
       onSuccess();
       onClose();
     } catch (err) {
       console.error(err);
-      toast({ title: 'Error', description: 'Error creating item', variant: 'destructive' });
+      toast({ title: 'Error', description: 'Error saving item', variant: 'destructive' });
     }
   };
 
@@ -650,7 +695,7 @@ function CreateItemForm({ onClose, onSuccess }: { onClose: () => void; onSuccess
 
       <div className="flex justify-end gap-2 pt-4">
         <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-        <Button type="submit">Add Item</Button>
+        <Button type="submit">{initialData ? 'Save Changes' : 'Add Item'}</Button>
       </div>
     </form>
   );

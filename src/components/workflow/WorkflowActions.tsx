@@ -21,7 +21,8 @@ interface WorkflowActionsProps {
 
 export const WorkflowActions: React.FC<WorkflowActionsProps> = ({
   module,
-  documentStatus,
+  entityId,
+  documentStatus = 'draft',
   currentApprover,
   nextRole,
   currentUserRole,

@@ -19,6 +19,7 @@ import {
 import { downloadFile } from '@/utils/downloadFile';
 import { useAuth } from '@/contexts/AuthContext';
 import { WorkflowContainer } from '@/components/workflow/WorkflowContainer';
+import { DataTablePagination } from "@/components/ui/data-table-pagination";
 
 
 interface Expense {
@@ -334,6 +335,13 @@ function ExpenseTable({
   onViewDetail: (expense: Expense) => void;
 }) {
   const { user } = useAuth();
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 12;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [expenses.length]);
+
   return (
     <Card>
       <CardContent className="p-0">
@@ -358,7 +366,7 @@ function ExpenseTable({
                 </TableCell>
               </TableRow>
             ) : (
-              expenses.map((expense) => {
+              expenses.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((expense) => {
                 const statusInfo = statusConfig[expense.status as keyof typeof statusConfig] || { label: expense.status, variant: 'secondary' as const, icon: FileText };
                 const StatusIcon = statusInfo.icon;
                 return (
@@ -397,6 +405,17 @@ function ExpenseTable({
             )}
           </TableBody>
         </Table>
+        {expenses.length > PAGE_SIZE && (
+          <div className="p-4 border-t border-slate-200 dark:border-slate-800">
+            <DataTablePagination
+              currentPage={currentPage}
+              totalPages={Math.ceil(expenses.length / PAGE_SIZE)}
+              onPageChange={setCurrentPage}
+              onNextPage={() => setCurrentPage((p) => Math.min(Math.ceil(expenses.length / PAGE_SIZE), p + 1))}
+              onPrevPage={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            />
+          </div>
+        )}
       </CardContent>
     </Card>
   );

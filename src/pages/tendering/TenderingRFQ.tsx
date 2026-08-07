@@ -26,6 +26,7 @@ import { useWorkflow } from '@/hooks/useWorkflow';
 import { RoleLabels, UserRole } from '@/types';
 import { ApprovalTimeline } from '@/components/workflow/ApprovalTimeline';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { DataTablePagination } from "@/components/ui/data-table-pagination";
 
 interface RFQ {
   id: string;
@@ -138,7 +139,10 @@ export default function TenderingRFQ() {
   const [rfqs, setRFQs] = useState<RFQ[]>([]);
   const [quotations, setQuotations] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 12;
   const [selectedRFQ, setSelectedRFQ] = useState<RFQ | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const { id } = useParams<{ id: string }>();
@@ -334,7 +338,9 @@ export default function TenderingRFQ() {
     }
 
     return matchesSearch && matchesStatus;
-  });
+  }).sort((a, b) => new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime());
+
+  const paginatedRFQs = filteredRFQs.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   const stats = {
     total: rfqs.length,
@@ -547,6 +553,16 @@ export default function TenderingRFQ() {
 }
 
 function RFQTable({ rfqs, onSelectRFQ, isAwardedTable }: { rfqs: RFQ[]; onSelectRFQ: (rfq: RFQ) => void; isAwardedTable?: boolean }) {
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 12;
+  const filteredRFQs = rfqs;
+  const paginatedRFQs = filteredRFQs.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  // Reset pagination if rfqs change significantly
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [rfqs]);
+
   return (
     <Card>
       <CardContent className="p-0">
@@ -575,14 +591,14 @@ function RFQTable({ rfqs, onSelectRFQ, isAwardedTable }: { rfqs: RFQ[]; onSelect
             </TableRow>
           </TableHeader>
           <TableBody>
-            {rfqs.length === 0 ? (
+            {paginatedRFQs.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                   No RFQs found
                 </TableCell>
               </TableRow>
             ) : (
-              rfqs.map((rfq) => {
+              paginatedRFQs.map((rfq) => {
                 const statusInfo = statusConfig[rfq.status] || { label: rfq.status, variant: 'outline', icon: Clock };
                 const StatusIcon = statusInfo.icon;
                 const quotesReceived = rfq.vendors.filter(v => v.submitted).length;
@@ -655,6 +671,17 @@ function RFQTable({ rfqs, onSelectRFQ, isAwardedTable }: { rfqs: RFQ[]; onSelect
             )}
           </TableBody>
         </Table>
+        {filteredRFQs.length > PAGE_SIZE && (
+          <div className="p-4 border-t border-slate-200 dark:border-slate-800">
+            <DataTablePagination
+              currentPage={currentPage}
+              totalPages={Math.ceil(filteredRFQs.length / PAGE_SIZE)}
+              onPageChange={setCurrentPage}
+              onNextPage={() => setCurrentPage((p) => Math.min(Math.ceil(filteredRFQs.length / PAGE_SIZE), p + 1))}
+              onPrevPage={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            />
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -1863,7 +1890,7 @@ function CreateRFQForm({ initialIndentId, onClose }: { initialIndentId?: string;
   const [rfqId] = useState(() => `RFQ-${Date.now()}`);
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('');
-  const [tower, setTower] = useState('Tower A');
+  const [tower, setTower] = useState('');
   const [estimatedValue, setEstimatedValue] = useState('');
   const [bidDueDate, setBidDueDate] = useState('');
   const [selectedVendors, setSelectedVendors] = useState<string[]>([]);
@@ -1873,6 +1900,8 @@ function CreateRFQForm({ initialIndentId, onClose }: { initialIndentId?: string;
   const [dbVendors, setDbVendors] = useState<any[]>([]);
   const [biddingType, setBiddingType] = useState('standard');
   const [reservePrice, setReservePrice] = useState('');
+  const [categories, setCategories] = useState<any[]>([]);
+  const [towers, setTowers] = useState<any[]>([]);
 
   const activeCategoryVendors = (() => {
     return dbVendors.filter(v => 
@@ -1913,9 +1942,44 @@ function CreateRFQForm({ initialIndentId, onClose }: { initialIndentId?: string;
         console.error(err);
       }
     };
+    const fetchFields = async () => {
+      try {
+        const token = localStorage.getItem('campusspend_token');
+        const res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/setups/inventory-master-fields/`, {
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        });
+        if (res.ok) {
+          const raw = await res.json();
+          const data = Array.isArray(raw) ? raw : (raw.results ?? []);
+          const activeFields = data.filter((f: any) => f.is_active);
+          
+          const cats = activeFields.filter((f: any) => f.field_type === 'category');
+          if (cats.length > 0) setCategories(cats);
+          
+          const twrs = activeFields.filter((f: any) => f.field_type === 'tower');
+          if (twrs.length > 0) setTowers(twrs);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
     fetchApprovedIndents();
     fetchVendors();
+    fetchFields();
   }, []);
+
+  const getMatchingValue = (val: string, options: any[], defaultOptions: string[]) => {
+    if (!val) return '';
+    const lowerVal = val.toLowerCase();
+    if (options.length > 0) {
+      const match = options.find(o => o.value.toLowerCase() === lowerVal || o.label.toLowerCase() === lowerVal);
+      if (match) return match.value;
+    } else {
+      const match = defaultOptions.find(o => o.toLowerCase() === lowerVal);
+      if (match) return match.toLowerCase();
+    }
+    return lowerVal; // fallback
+  };
 
   useEffect(() => {
     if (initialIndentId && indents.length > 0) {
@@ -1923,12 +1987,12 @@ function CreateRFQForm({ initialIndentId, onClose }: { initialIndentId?: string;
       if (selected) {
         setLinkedPR(initialIndentId);
         setTitle(`RFQ for Indent ${selected.id} - ${selected.category}`);
-        setCategory(selected.category);
-        setTower(selected.tower);
+        setCategory(getMatchingValue(selected.category, categories, ['hvac', 'electrical', 'plumbing', 'security', 'landscaping']));
+        setTower(getMatchingValue(selected.tower, towers, ['tower_a', 'tower_b', 'tower_c', 'tower_d']));
         setEstimatedValue(selected.estimated_cost);
       }
     }
-  }, [initialIndentId, indents]);
+  }, [initialIndentId, indents, categories, towers]);
 
   const handleCreateRFQ = async () => {
     if (!title || !linkedPR || !category || !bidDueDate || selectedVendors.length < 1) {
@@ -2011,8 +2075,8 @@ function CreateRFQForm({ initialIndentId, onClose }: { initialIndentId?: string;
             const selected = indents.find(i => i.id === val);
             if (selected) {
               setTitle(`RFQ for Indent ${selected.id} - ${selected.category}`);
-              setCategory(selected.category);
-              setTower(selected.tower);
+              setCategory(getMatchingValue(selected.category, categories, ['hvac', 'electrical', 'plumbing', 'security', 'landscaping']));
+              setTower(getMatchingValue(selected.tower, towers, ['tower_a', 'tower_b', 'tower_c', 'tower_d']));
               setEstimatedValue(selected.estimated_cost);
             }
           }}>
@@ -2040,11 +2104,17 @@ function CreateRFQForm({ initialIndentId, onClose }: { initialIndentId?: string;
               <SelectValue placeholder="Select category" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="hvac">HVAC</SelectItem>
-              <SelectItem value="electrical">Electrical</SelectItem>
-              <SelectItem value="plumbing">Plumbing</SelectItem>
-              <SelectItem value="security">Security</SelectItem>
-              <SelectItem value="landscaping">Landscaping</SelectItem>
+              {categories.length > 0 ? categories.map((cat: any) => (
+                <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
+              )) : (
+                <>
+                  <SelectItem value="hvac">HVAC</SelectItem>
+                  <SelectItem value="electrical">Electrical</SelectItem>
+                  <SelectItem value="plumbing">Plumbing</SelectItem>
+                  <SelectItem value="security">Security</SelectItem>
+                  <SelectItem value="landscaping">Landscaping</SelectItem>
+                </>
+              )}
             </SelectContent>
           </Select>
         </div>
@@ -2055,9 +2125,15 @@ function CreateRFQForm({ initialIndentId, onClose }: { initialIndentId?: string;
               <SelectValue placeholder="Select tower" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="Tower A">Tower A</SelectItem>
-              <SelectItem value="Tower B">Tower B</SelectItem>
-              <SelectItem value="Tower C">Tower C</SelectItem>
+              {towers.length > 0 ? towers.map((twr: any) => (
+                <SelectItem key={twr.value} value={twr.value}>{twr.label}</SelectItem>
+              )) : (
+                <>
+                  <SelectItem value="Tower A">Tower A</SelectItem>
+                  <SelectItem value="Tower B">Tower B</SelectItem>
+                  <SelectItem value="Tower C">Tower C</SelectItem>
+                </>
+              )}
             </SelectContent>
           </Select>
         </div>

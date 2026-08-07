@@ -15,6 +15,7 @@ import {
   Truck, ArrowLeftRight, Clock, CheckCircle, Search, Filter, Plus, FileText, CheckCircle2, TrendingUp, AlertTriangle, Play, Calendar, Building2, ArrowRight
 } from 'lucide-react';
 import { inventoryAPI } from '@/api/inventory';
+import { DataTablePagination } from "@/components/ui/data-table-pagination";
 
 interface StockTransfer {
   id: string;
@@ -73,6 +74,8 @@ export default function StockTransfer() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 12;
 
   useEffect(() => {
     fetchTransfers();
@@ -237,7 +240,7 @@ export default function StockTransfer() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredTransfers.map((transfer) => {
+                  filteredTransfers.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((transfer) => {
                     const statusInfo = statusConfig[transfer.status] || { label: transfer.status, variant: 'default', icon: Clock };
                     const StatusIcon = statusInfo.icon;
                     
@@ -294,6 +297,17 @@ export default function StockTransfer() {
                 )}
               </TableBody>
             </Table>
+            {filteredTransfers.length > PAGE_SIZE && (
+              <div className="p-4 border-t border-slate-200 dark:border-slate-800">
+                <DataTablePagination
+                  currentPage={currentPage}
+                  totalPages={Math.ceil(filteredTransfers.length / PAGE_SIZE)}
+                  onPageChange={setCurrentPage}
+                  onNextPage={() => setCurrentPage((p) => Math.min(Math.ceil(filteredTransfers.length / PAGE_SIZE), p + 1))}
+                  onPrevPage={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                />
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Plus, Trash2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { DataTablePagination } from "@/components/ui/data-table-pagination";
 
 interface InventoryField {
   id: number;
@@ -33,6 +34,8 @@ export default function InventoryMaster() {
   const [fields, setFields] = useState<InventoryField[]>([]);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [filterType, setFilterType] = useState<string>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 12;
 
   useEffect(() => {
     fetchFields();
@@ -72,6 +75,10 @@ export default function InventoryMaster() {
 
   const filteredFields = filterType === 'all' ? fields : fields.filter(f => f.field_type === filterType);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filteredFields.length, filterType]);
+
   return (
     <MainLayout>
       <div className="space-y-6">
@@ -99,7 +106,7 @@ export default function InventoryMaster() {
           </div>
         </div>
 
-        <div className="flex gap-4 items-center">
+        <div className="flex gap-4 items-center mb-6">
           <Select value={filterType} onValueChange={setFilterType}>
             <SelectTrigger className="w-64">
               <SelectValue placeholder="Filter by Field Type" />
@@ -111,6 +118,12 @@ export default function InventoryMaster() {
               ))}
             </SelectContent>
           </Select>
+          
+          {filterType !== 'all' && (
+            <Button variant="ghost" onClick={() => { setFilterType('all'); setCurrentPage(1); }} className="text-muted-foreground hover:text-foreground">
+              Clear Filter
+            </Button>
+          )}
         </div>
 
         <Card>
@@ -133,7 +146,7 @@ export default function InventoryMaster() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredFields.map((field) => (
+                  filteredFields.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((field) => (
                     <TableRow key={field.id}>
                       <TableCell className="font-medium">
                         {FIELD_CHOICES.find(c => c.value === field.field_type)?.label || field.field_type}
@@ -155,6 +168,17 @@ export default function InventoryMaster() {
                 )}
               </TableBody>
             </Table>
+            {filteredFields.length > PAGE_SIZE && (
+              <div className="p-4 border-t border-slate-200 dark:border-slate-800">
+                <DataTablePagination
+                  currentPage={currentPage}
+                  totalPages={Math.ceil(filteredFields.length / PAGE_SIZE)}
+                  onPageChange={setCurrentPage}
+                  onNextPage={() => setCurrentPage((p) => Math.min(Math.ceil(filteredFields.length / PAGE_SIZE), p + 1))}
+                  onPrevPage={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                />
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

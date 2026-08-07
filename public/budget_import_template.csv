@@ -1,3 +1,1 @@
 id,fy,type,tower,department,category,gl_code,period,annual_budget,allocated,committed,actual,owner,status,notes
-BUD-001,FY 2025-26,opex,Tower A,Engineering,Maintenance,5001-RM,annual,5000000,500000,100000,0,John Doe,approved,Initial budget
-BUD-002,FY 2025-26,capex,Tower B,Facilities,Civil Work,6001-CAPEX-CIVIL,annual,10000000,2000000,500000,100000,Jane Smith,draft,New civil project

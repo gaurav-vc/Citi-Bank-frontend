@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { downloadFile } from '@/utils/downloadFile';
 import { useAuth } from '@/contexts/AuthContext';
+import { DataTablePagination } from "@/components/ui/data-table-pagination";
 import { useParams, useNavigate } from 'react-router-dom';
 import { inventoryAPI } from '@/api/inventory';
 import { ordersAPI } from '@/api/orders';
@@ -77,6 +78,8 @@ export default function GRNEntry() {
   const [isCreateGrnOpen, setIsCreateGrnOpen] = useState(false);
   const [approvedPOs, setApprovedPOs] = useState<any[]>([]);
   const [isFetchingPOs, setIsFetchingPOs] = useState(false);
+  const [invoiceNumber, setInvoiceNumber] = useState('');
+  const [invoiceDate, setInvoiceDate] = useState('');
   const [selectedPO, setSelectedPO] = useState<any | null>(null);
   const { user } = useAuth();
 
@@ -131,7 +134,7 @@ export default function GRNEntry() {
 
     try {
       await downloadFile(
-        `${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/inventory/grns/export/?format=xlsx`,
+        `${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/grns/export/?format=xlsx`,
         `grns_export_${Date.now()}.xlsx`,
         token || ''
       );
@@ -179,8 +182,8 @@ export default function GRNEntry() {
         po_id: selectedPO.id,
         received_by: user ? user.name : 'System User',
         received_date: new Date().toISOString().split('T')[0],
-        invoice_number: '',
-        invoice_date: null,
+        invoice_number: invoiceNumber || '',
+        invoice_date: invoiceDate || null,
         vendor_name: selectedPO.vendorName || '',
         attachments: [],
         remarks: 'Auto-generated GRN from PO',
@@ -197,17 +200,15 @@ export default function GRNEntry() {
     }
   };
 
+  const uniqueStatuses = Array.from(new Set(grns.map(g => g.status).filter(Boolean))).sort();
+
   const filteredGRNs = grns.filter(grn => {
     const matchesSearch = (grn.id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (grn.poId || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (grn.vendor && (grn.vendor || '').toLowerCase().includes(searchTerm.toLowerCase()));
     let matchesStatus = true;
     if (statusFilter !== 'all') {
-      if (statusFilter === 'pending') {
-        matchesStatus = ['pending', 'pending_qc', 'qc_completed'].includes(grn.status);
-      } else {
-        matchesStatus = grn.status === statusFilter;
-      }
+      matchesStatus = grn.status === statusFilter;
     }
     return matchesSearch && matchesStatus;
   });
@@ -245,10 +246,14 @@ export default function GRNEntry() {
             <p className="text-muted-foreground">Goods Receipt Note management and quality control</p>
           </div>
           <div className="flex gap-2">
-            <Dialog open={isCreateGrnOpen} onOpenChange={(open) => {
+              <Dialog open={isCreateGrnOpen} onOpenChange={(open) => {
               setIsCreateGrnOpen(open);
               if (open) fetchApprovedPOs();
-              else setSelectedPO(null);
+              else {
+                setSelectedPO(null);
+                setInvoiceNumber('');
+                setInvoiceDate('');
+              }
             }}>
               <DialogTrigger asChild>
                 <Button>
@@ -284,11 +289,32 @@ export default function GRNEntry() {
                   </div>
                   
                   {selectedPO && (
-                    <div className="p-4 bg-muted/30 rounded-md border text-sm space-y-2">
-                      <div className="grid grid-cols-2 gap-2">
-                        <div><span className="font-semibold text-muted-foreground">PO Date:</span> {selectedPO.startDate || 'N/A'}</div>
-                        <div><span className="font-semibold text-muted-foreground">Total Value:</span> {selectedPO.netValue || 0}</div>
-                        <div><span className="font-semibold text-muted-foreground">Items:</span> {selectedPO.items?.length || 0} items</div>
+                    <div className="space-y-4">
+                      <div className="p-4 bg-muted/30 rounded-md border text-sm space-y-2">
+                        <div className="grid grid-cols-2 gap-2">
+                          <div><span className="font-semibold text-muted-foreground">PO Date:</span> {selectedPO.startDate || 'N/A'}</div>
+                          <div><span className="font-semibold text-muted-foreground">Total Value:</span> {selectedPO.netValue || 0}</div>
+                          <div><span className="font-semibold text-muted-foreground">Items:</span> {selectedPO.items?.length || 0} items</div>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Invoice Number</Label>
+                          <Input 
+                            placeholder="Optional" 
+                            value={invoiceNumber} 
+                            onChange={(e) => setInvoiceNumber(e.target.value)} 
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Invoice Date</Label>
+                          <Input 
+                            type="date" 
+                            value={invoiceDate} 
+                            onChange={(e) => setInvoiceDate(e.target.value)} 
+                          />
+                        </div>
                       </div>
                     </div>
                   )}
@@ -389,12 +415,18 @@ export default function GRNEntry() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="partial_accepted">Partial Accepted</SelectItem>
-                  <SelectItem value="accepted">Accepted</SelectItem>
-                  <SelectItem value="rejected">Rejected</SelectItem>
+                  {uniqueStatuses.map((status: any) => (
+                    <SelectItem key={status} value={status}>
+                      {status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, ' ')}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
+              {statusFilter !== 'all' && (
+                <Button variant="ghost" onClick={() => setStatusFilter('all')} className="text-muted-foreground hover:text-foreground">
+                  Clear Filter
+                </Button>
+              )}
             </div>
           </div>
 
@@ -418,6 +450,12 @@ function GRNTable({ grns, onActionComplete, onViewDetails }: { grns: GRN[], onAc
   const [actionType, setActionType] = useState<string>('');
   const [inventoryDecision, setInventoryDecision] = useState<'surplus' | 'site'>('surplus');
   const [partialItems, setPartialItems] = useState<Array<{itemId: string, itemName?: string, acceptedQty: number, rejectedQty: number}>>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 12;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [grns.length]);
 
   const handleProcessGRN = async (action: 'accept' | 'reject' | 'partial_accept', payload: any = {}) => {
     try {
@@ -466,7 +504,7 @@ function GRNTable({ grns, onActionComplete, onViewDetails }: { grns: GRN[], onAc
                 </TableCell>
               </TableRow>
             ) : (
-              grns.map((grn) => {
+              grns.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((grn) => {
                 const statusInfo = statusConfig[grn.status] || { label: grn.status, variant: 'default' as const, icon: CheckCircle };
                 const StatusIcon = statusInfo.icon;
                 const totalOrdered = grn.items.reduce((sum, i) => sum + (i.orderedQty || 0), 0);

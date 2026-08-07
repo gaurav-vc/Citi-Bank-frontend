@@ -26,6 +26,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { AddStockModal } from './AddStockModal';
 import { StockHistoryModal } from './StockHistoryModal';
 import { inventoryAPI } from '@/api/inventory';
+import { DataTablePagination } from "@/components/ui/data-table-pagination";
 export default function StockLedger() {
   const { token, user } = useAuth();
   const [items, setItems] = useState<any[]>([]);
@@ -34,6 +35,8 @@ export default function StockLedger() {
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [selectedItemName, setSelectedItemName] = useState<string | null>(null);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 12;
 
   const handleOpenHistory = (itemId: string, itemName: string) => {
     setSelectedItemId(itemId);
@@ -331,7 +334,7 @@ export default function StockLedger() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredItems.map((item) => {
+                  {filteredItems.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((item) => {
                     const status = getStockStatus(item);
                     const stockPercentage = (item.currentStock / (item.reorderLevel * 2)) * 100;
 
@@ -390,6 +393,17 @@ export default function StockLedger() {
                 </tbody>
               </table>
             </div>
+            {filteredItems.length > PAGE_SIZE && (
+              <div className="p-4 border-t border-slate-200 dark:border-slate-800">
+                <DataTablePagination
+                  currentPage={currentPage}
+                  totalPages={Math.ceil(filteredItems.length / PAGE_SIZE)}
+                  onPageChange={setCurrentPage}
+                  onNextPage={() => setCurrentPage((p) => Math.min(Math.ceil(filteredItems.length / PAGE_SIZE), p + 1))}
+                  onPrevPage={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                />
+              </div>
+            )}
           </CardContent>
         </Card>
 

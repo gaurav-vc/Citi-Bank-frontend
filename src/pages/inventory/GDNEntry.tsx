@@ -10,6 +10,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Package, Truck, CheckCircle2, Clock } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { DataTablePagination } from "@/components/ui/data-table-pagination";
 
 export default function GDNEntry() {
   const [gdns, setGdns] = useState<any[]>([]);
@@ -17,6 +18,8 @@ export default function GDNEntry() {
   const [selectedGrn, setSelectedGrn] = useState('');
   const [destination, setDestination] = useState('');
   const [isCreating, setIsCreating] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 12;
 
   useEffect(() => {
     fetchGdns();
@@ -181,7 +184,7 @@ export default function GDNEntry() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  gdns.map((gdn) => (
+                  gdns.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((gdn) => (
                     <TableRow key={gdn.id}>
                       <TableCell className="font-mono text-sm">{gdn.id}</TableCell>
                       <TableCell className="font-mono text-sm text-muted-foreground">{gdn.grn_id}</TableCell>
@@ -201,6 +204,17 @@ export default function GDNEntry() {
                 )}
               </TableBody>
             </Table>
+            {gdns.length > PAGE_SIZE && (
+              <div className="p-4 border-t border-slate-200 dark:border-slate-800">
+                <DataTablePagination
+                  currentPage={currentPage}
+                  totalPages={Math.ceil(gdns.length / PAGE_SIZE)}
+                  onPageChange={setCurrentPage}
+                  onNextPage={() => setCurrentPage((p) => Math.min(Math.ceil(gdns.length / PAGE_SIZE), p + 1))}
+                  onPrevPage={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                />
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

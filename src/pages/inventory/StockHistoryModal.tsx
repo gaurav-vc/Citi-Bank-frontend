@@ -9,6 +9,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Calendar, Package, ArrowUpRight, ArrowDownLeft, RefreshCw, AlertCircle } from 'lucide-react';
+import { DataTablePagination } from "@/components/ui/data-table-pagination";
 
 interface HistoryEntry {
   date: string;
@@ -31,6 +32,8 @@ export function StockHistoryModal({ isOpen, onClose, itemId, itemName }: StockHi
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [currentStock, setCurrentStock] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 12;
 
   useEffect(() => {
     if (isOpen && itemId) {
@@ -168,7 +171,7 @@ export function StockHistoryModal({ isOpen, onClose, itemId, itemName }: StockHi
                   </tr>
                 </thead>
                 <tbody>
-                  {history.map((entry, idx) => (
+                  {history.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((entry, idx) => (
                     <tr
                       key={idx}
                       className="border-b hover:bg-muted/50 transition-colors"
@@ -211,6 +214,17 @@ export function StockHistoryModal({ isOpen, onClose, itemId, itemName }: StockHi
                 </tbody>
               </table>
             </ScrollArea>
+            {history.length > PAGE_SIZE && (
+              <div className="p-4 border-t border-slate-200 dark:border-slate-800">
+                <DataTablePagination
+                  currentPage={currentPage}
+                  totalPages={Math.ceil(history.length / PAGE_SIZE)}
+                  onPageChange={setCurrentPage}
+                  onNextPage={() => setCurrentPage((p) => Math.min(Math.ceil(history.length / PAGE_SIZE), p + 1))}
+                  onPrevPage={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                />
+              </div>
+            )}
           </div>
         )}
       </DialogContent>

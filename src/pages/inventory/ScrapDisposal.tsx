@@ -15,6 +15,7 @@ import {
   FileText, Package, DollarSign, Clock, CheckCircle, Trash2, XCircle, Plus, AlertTriangle, Search
 } from 'lucide-react';
 import { inventoryAPI } from '@/api/inventory';
+import { DataTablePagination } from "@/components/ui/data-table-pagination";
 
 interface ScrapItem {
   id: string;
@@ -74,6 +75,8 @@ export default function ScrapDisposal() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<ScrapItem | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 12;
 
   useEffect(() => {
     fetchScrap();
@@ -253,7 +256,7 @@ export default function ScrapDisposal() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredItems.map((item) => {
+                  filteredItems.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((item) => {
                     const statusInfo = statusConfig[item.status];
                     const StatusIcon = statusInfo.icon;
                     
@@ -305,6 +308,17 @@ export default function ScrapDisposal() {
                 )}
               </TableBody>
             </Table>
+            {filteredItems.length > PAGE_SIZE && (
+              <div className="p-4 border-t border-slate-200 dark:border-slate-800">
+                <DataTablePagination
+                  currentPage={currentPage}
+                  totalPages={Math.ceil(filteredItems.length / PAGE_SIZE)}
+                  onPageChange={setCurrentPage}
+                  onNextPage={() => setCurrentPage((p) => Math.min(Math.ceil(filteredItems.length / PAGE_SIZE), p + 1))}
+                  onPrevPage={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                />
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

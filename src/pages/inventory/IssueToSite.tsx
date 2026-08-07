@@ -14,6 +14,7 @@ import {
   ArrowUpRight, FileText, Plus, Package, Clock, Search, User, Building2
 } from 'lucide-react';
 import { inventoryAPI } from '@/api/inventory';
+import { DataTablePagination } from "@/components/ui/data-table-pagination";
 
 interface MaterialIssue {
   id: string;
@@ -68,6 +69,8 @@ export default function IssueToSite() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 12;
 
   useEffect(() => {
     fetchIssues();
@@ -238,7 +241,7 @@ export default function IssueToSite() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredIssues.map((issue) => {
+                  filteredIssues.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((issue) => {
                     const statusInfo = statusConfig[issue.status] || { label: issue.status, variant: 'default' };
                     const totalIssued = issue.items.reduce((sum, i) => sum + i.issuedQty, 0);
                     const totalReturned = issue.items.reduce((sum, i) => sum + i.returnedQty, 0);
@@ -297,6 +300,17 @@ export default function IssueToSite() {
                 )}
               </TableBody>
             </Table>
+            {filteredIssues.length > PAGE_SIZE && (
+              <div className="p-4 border-t border-slate-200 dark:border-slate-800">
+                <DataTablePagination
+                  currentPage={currentPage}
+                  totalPages={Math.ceil(filteredIssues.length / PAGE_SIZE)}
+                  onPageChange={setCurrentPage}
+                  onNextPage={() => setCurrentPage((p) => Math.min(Math.ceil(filteredIssues.length / PAGE_SIZE), p + 1))}
+                  onPrevPage={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                />
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

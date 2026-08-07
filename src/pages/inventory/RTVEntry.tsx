@@ -10,6 +10,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertTriangle, Undo2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { DataTablePagination } from "@/components/ui/data-table-pagination";
 
 export default function RTVEntry() {
   const [rtvs, setRtvs] = useState<any[]>([]);
@@ -18,6 +19,8 @@ export default function RTVEntry() {
   const [vendorRef, setVendorRef] = useState('');
   const [reason, setReason] = useState('');
   const [isCreating, setIsCreating] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 12;
 
   useEffect(() => {
     fetchRtvs();
@@ -197,7 +200,7 @@ export default function RTVEntry() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  rtvs.map((rtv) => (
+                  rtvs.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((rtv) => (
                     <TableRow key={rtv.id}>
                       <TableCell className="font-mono text-sm">{rtv.id}</TableCell>
                       <TableCell className="font-mono text-sm text-muted-foreground">{rtv.grn_id}</TableCell>
@@ -217,6 +220,17 @@ export default function RTVEntry() {
                 )}
               </TableBody>
             </Table>
+            {rtvs.length > PAGE_SIZE && (
+              <div className="p-4 border-t border-slate-200 dark:border-slate-800">
+                <DataTablePagination
+                  currentPage={currentPage}
+                  totalPages={Math.ceil(rtvs.length / PAGE_SIZE)}
+                  onPageChange={setCurrentPage}
+                  onNextPage={() => setCurrentPage((p) => Math.min(Math.ceil(rtvs.length / PAGE_SIZE), p + 1))}
+                  onPrevPage={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                />
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ordersAPI } from '@/api/orders';
+import { DataTablePagination } from "@/components/ui/data-table-pagination";
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -64,6 +65,8 @@ export default function WorkOrders() {
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 12;
 
   useEffect(() => {
     fetchWorkOrders();
@@ -247,7 +250,7 @@ export default function WorkOrders() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredOrders.map((order) => {
+                  filteredOrders.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((order) => {
                     const statusInfo = statusConfig[order.status];
                     const StatusIcon = statusInfo.icon;
                     
@@ -311,6 +314,17 @@ export default function WorkOrders() {
                 )}
               </TableBody>
             </Table>
+            {filteredOrders.length > PAGE_SIZE && (
+              <div className="p-4 border-t border-slate-200 dark:border-slate-800">
+                <DataTablePagination
+                  currentPage={currentPage}
+                  totalPages={Math.ceil(filteredOrders.length / PAGE_SIZE)}
+                  onPageChange={setCurrentPage}
+                  onNextPage={() => setCurrentPage((p) => Math.min(Math.ceil(filteredOrders.length / PAGE_SIZE), p + 1))}
+                  onPrevPage={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                />
+              </div>
+            )}
           </CardContent>
         </Card>
 

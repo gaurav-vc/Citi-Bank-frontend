@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { downloadFile } from '@/utils/downloadFile';
 import { useAuth } from '@/contexts/AuthContext';
+import { DataTablePagination } from "@/components/ui/data-table-pagination";
 
 interface RateContract {
   id: string;
@@ -327,6 +328,13 @@ export default function RateContractMaster() {
 }
 
 function ContractTable({ contracts }: { contracts: RateContract[] }) {
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 12;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [contracts.length]);
+
   return (
     <Card>
       <CardContent className="p-0">
@@ -353,7 +361,7 @@ function ContractTable({ contracts }: { contracts: RateContract[] }) {
                 </TableCell>
               </TableRow>
             ) : (
-              contracts.map((contract) => {
+              contracts.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((contract) => {
                 const statusInfo = statusConfig[contract.status];
                 const StatusIcon = statusInfo.icon;
                 
@@ -414,6 +422,17 @@ function ContractTable({ contracts }: { contracts: RateContract[] }) {
             )}
           </TableBody>
         </Table>
+        {contracts.length > PAGE_SIZE && (
+          <div className="p-4 border-t border-slate-200 dark:border-slate-800">
+            <DataTablePagination
+              currentPage={currentPage}
+              totalPages={Math.ceil(contracts.length / PAGE_SIZE)}
+              onPageChange={setCurrentPage}
+              onNextPage={() => setCurrentPage((p) => Math.min(Math.ceil(contracts.length / PAGE_SIZE), p + 1))}
+              onPrevPage={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            />
+          </div>
+        )}
       </CardContent>
     </Card>
   );

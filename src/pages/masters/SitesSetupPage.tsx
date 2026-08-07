@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Edit, Trash2, ArrowLeft } from "lucide-react";
+import { DataTablePagination } from "@/components/ui/data-table-pagination";
 
 export default function SitesSetupPage() {
   const navigate = useNavigate();
@@ -13,6 +14,8 @@ export default function SitesSetupPage() {
 
   const [search, setSearch] = useState("");
   const [projectType, setProjectType] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 12;
 
   const { data: sites = [], isLoading: isLoadingSites } = useQuery({
     queryKey: ["sites"],
@@ -53,6 +56,10 @@ export default function SitesSetupPage() {
       return `${siteName} ${address} ${contactName} ${contactEmail}`.toLowerCase().includes(q);
     });
   }, [rows, search, projectType]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filteredRows.length]);
 
   const deleteMutation = useMutation({
     mutationFn: (siteId: number | string) => api.deleteSite(siteId),
@@ -150,7 +157,7 @@ export default function SitesSetupPage() {
                   </td>
                 </tr>
               ) : (
-                filteredRows.map((row) => {
+                filteredRows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((row) => {
                   const orgName = row.organization_name || "";
                   const formattedDate = row.created_at
                     ? new Date(row.created_at).toLocaleString("en-GB", {
@@ -215,6 +222,17 @@ export default function SitesSetupPage() {
               )}
             </tbody>
           </table>
+          {filteredRows.length > PAGE_SIZE && (
+            <div className="p-4 border-t border-slate-200 dark:border-slate-800">
+              <DataTablePagination
+                currentPage={currentPage}
+                totalPages={Math.ceil(filteredRows.length / PAGE_SIZE)}
+                onPageChange={setCurrentPage}
+                onNextPage={() => setCurrentPage((p) => Math.min(Math.ceil(filteredRows.length / PAGE_SIZE), p + 1))}
+                onPrevPage={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              />
+            </div>
+          )}
         </section>
       </section>
     </MainLayout>

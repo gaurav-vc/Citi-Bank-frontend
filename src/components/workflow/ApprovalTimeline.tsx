@@ -9,7 +9,8 @@ interface ApprovalTimelineProps {
 }
 
 export const ApprovalTimeline: React.FC<ApprovalTimelineProps> = ({ timeline }) => {
-  const { steps, document: docInfo } = timeline;
+  const steps = timeline.steps || [];
+  const docInfo = timeline.document || ({} as any);
 
   const getStatusIcon = (status: WorkflowStep['status']) => {
     switch (status) {

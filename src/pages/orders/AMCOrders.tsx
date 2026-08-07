@@ -12,6 +12,7 @@ import {
   Search, Filter, Plus, Calendar, CheckCircle, XCircle, Clock,
   Eye, Edit, RefreshCw, AlertTriangle, DollarSign, Building2
 } from 'lucide-react';
+import { DataTablePagination } from "@/components/ui/data-table-pagination";
 
 interface AMCOrder {
   id: string;
@@ -65,6 +66,8 @@ export default function AMCOrders() {
   const [amcOrders, setAmcOrders] = useState<AMCOrder[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 12;
 
   useEffect(() => {
     fetchAMCOrders();
@@ -258,7 +261,7 @@ export default function AMCOrders() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredOrders.map((order) => {
+                  filteredOrders.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((order) => {
                     const statusInfo = statusConfig[order.status];
                     const StatusIcon = statusInfo.icon;
                     
@@ -339,6 +342,17 @@ export default function AMCOrders() {
                 )}
               </TableBody>
             </Table>
+            {filteredOrders.length > PAGE_SIZE && (
+              <div className="p-4 border-t border-slate-200 dark:border-slate-800">
+                <DataTablePagination
+                  currentPage={currentPage}
+                  totalPages={Math.ceil(filteredOrders.length / PAGE_SIZE)}
+                  onPageChange={setCurrentPage}
+                  onNextPage={() => setCurrentPage((p) => Math.min(Math.ceil(filteredOrders.length / PAGE_SIZE), p + 1))}
+                  onPrevPage={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                />
+              </div>
+            )}
           </CardContent>
         </Card>
 

@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, Organization } from "@/lib/api";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { ArrowLeft } from "lucide-react";
+import { DataTablePagination } from "@/components/ui/data-table-pagination";
 
 function formatAddress(org: Organization) {
   const parts = [org.zone, org.city, org.state, org.region, org.country].filter((p) => p && p !== "-");
@@ -40,6 +41,8 @@ export default function OrganizationDetailPage() {
   const [contactPhoneDraft, setContactPhoneDraft] = useState("");
   const [subdomainMessage, setSubdomainMessage] = useState("");
   const [contactHint, setContactHint] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 12;
 
   const { data: org, isLoading: isLoadingOrg } = useQuery({
     queryKey: ["organization", orgId],
@@ -95,6 +98,10 @@ export default function OrganizationDetailPage() {
     if (!orgId) return [];
     return sites.filter((s) => s.organization === Number(orgId));
   }, [sites, orgId]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [orgSites.length]);
 
   const regions = useMemo(() => (org ? activeRegionTags(org) : []), [org]);
 
@@ -393,7 +400,7 @@ export default function OrganizationDetailPage() {
                         </td>
                       </tr>
                     ) : (
-                      orgSites.map((row) => {
+                      orgSites.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((row) => {
                         const st = row.status === "Inactive" ? "inactive" : "active";
                         return (
                           <tr key={row.id}>
@@ -439,6 +446,17 @@ export default function OrganizationDetailPage() {
                     )}
                   </tbody>
                 </table>
+                {orgSites.length > PAGE_SIZE && (
+                  <div className="p-4 border-t border-slate-200 dark:border-slate-800">
+                    <DataTablePagination
+                      currentPage={currentPage}
+                      totalPages={Math.ceil(orgSites.length / PAGE_SIZE)}
+                      onPageChange={setCurrentPage}
+                      onNextPage={() => setCurrentPage((p) => Math.min(Math.ceil(orgSites.length / PAGE_SIZE), p + 1))}
+                      onPrevPage={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    />
+                  </div>
+                )}
               </div>
             </section>
           </div>

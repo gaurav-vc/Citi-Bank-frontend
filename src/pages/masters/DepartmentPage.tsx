@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
 import { Search, Plus, Edit, Trash2, Building, Building2, MapPin, Text, Hash, FileDigit, Wallet, CheckCircle } from "lucide-react";
+import { DataTablePagination } from "@/components/ui/data-table-pagination";
 
 export default function DepartmentPage() {
   const { user } = useAuth();
@@ -19,6 +20,8 @@ export default function DepartmentPage() {
   const [search, setSearch] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 12;
 
   // Form states
   const [name, setName] = useState("");
@@ -55,6 +58,10 @@ export default function DepartmentPage() {
       );
     });
   }, [departments, siteIdFilter, search]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filteredRows.length]);
 
   const saveMutation = useMutation({
     mutationFn: (data: any) => {
@@ -213,7 +220,7 @@ export default function DepartmentPage() {
                   </td>
                 </tr>
               ) : (
-                filteredRows.map((row: any) => (
+                filteredRows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((row: any) => (
                   <tr key={row.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-3">
@@ -271,6 +278,17 @@ export default function DepartmentPage() {
               )}
             </tbody>
           </table>
+          {filteredRows.length > PAGE_SIZE && (
+            <div className="p-4 border-t border-slate-200 dark:border-slate-800">
+              <DataTablePagination
+                currentPage={currentPage}
+                totalPages={Math.ceil(filteredRows.length / PAGE_SIZE)}
+                onPageChange={setCurrentPage}
+                onNextPage={() => setCurrentPage((p) => Math.min(Math.ceil(filteredRows.length / PAGE_SIZE), p + 1))}
+                onPrevPage={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              />
+            </div>
+          )}
         </div>
       </Card>
 

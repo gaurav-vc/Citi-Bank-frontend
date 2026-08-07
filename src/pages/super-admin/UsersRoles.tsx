@@ -32,10 +32,13 @@ const ACTIONS = ["view", "create", "modify", "delete", "approve"] as const;
 type ActionKey = typeof ACTIONS[number];
 
 import { MainLayout } from "@/components/layout/MainLayout";
+import { DataTablePagination } from "@/components/ui/data-table-pagination";
 export default function SuperAdminUsersRoles() {
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<"roles" | "users" | "permissions" | "pending">("roles");
   const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 12;
 
   const [selectedOrgId, setSelectedOrgId] = useState<string>("");
   const [selectedSiteId, setSelectedSiteId] = useState<string>("");
@@ -265,6 +268,11 @@ export default function SuperAdminUsersRoles() {
     });
   }, [roles, searchQuery]);
 
+  const paginatedRoles = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return filteredRoles.slice(start, start + PAGE_SIZE);
+  }, [filteredRoles, currentPage]);
+
   // Filtering Users
   const filteredUsers = useMemo(() => {
     return users.filter((u: any) => {
@@ -275,6 +283,16 @@ export default function SuperAdminUsersRoles() {
       return name.includes(q) || email.includes(q) || empId.includes(q);
     });
   }, [users, searchQuery]);
+
+  const paginatedUsers = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return filteredUsers.slice(start, start + PAGE_SIZE);
+  }, [filteredUsers, currentPage]);
+
+  const paginatedPending = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return pendingUsers.slice(start, start + PAGE_SIZE);
+  }, [pendingUsers, currentPage]);
 
   const generatedEmpId = useMemo(() => {
     if (editingUser) return editingUser.profile?.employee_id || "";
@@ -410,6 +428,23 @@ export default function SuperAdminUsersRoles() {
               ))}
             </select>
           </div>
+          {(selectedOrgId || selectedSiteId || searchQuery) && (
+            <div className="flex flex-col gap-1.5 justify-end h-[58px]">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setSelectedOrgId("");
+                  setSelectedSiteId("");
+                  setSearchQuery("");
+                  setCurrentPage(1);
+                }}
+                className="text-xs font-semibold h-9"
+              >
+                <X className="mr-1 h-3 w-3" /> Clear Filters
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Navigation Tabs and Search */}
@@ -494,14 +529,14 @@ export default function SuperAdminUsersRoles() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
-                    {filteredRoles.length === 0 ? (
+                    {paginatedRoles.length === 0 ? (
                       <tr>
                         <td colSpan={6} className="text-center py-8 text-muted-foreground font-normal">
                           No roles found.
                         </td>
                       </tr>
                     ) : (
-                      filteredRoles.map((role: any) => {
+                      paginatedRoles.map((role: any) => {
                         const dept = departments.find(d => String(d.id) === String(role.department_id));
                         return (
                           <tr key={role.id} className="hover:bg-slate-50/30 dark:hover:bg-slate-850/10 transition-colors">
@@ -574,6 +609,17 @@ export default function SuperAdminUsersRoles() {
                   </tbody>
                 </table>
               </div>
+              {filteredRoles.length > PAGE_SIZE && (
+                <div className="p-4 border-t border-slate-200 dark:border-slate-800">
+                  <DataTablePagination 
+                    currentPage={currentPage} 
+                    totalPages={Math.ceil(filteredRoles.length / PAGE_SIZE)} 
+                    onPageChange={setCurrentPage} 
+                    onNextPage={() => setCurrentPage((p) => Math.min(Math.ceil(filteredRoles.length / PAGE_SIZE), p + 1))}
+                    onPrevPage={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  />
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
@@ -594,14 +640,14 @@ export default function SuperAdminUsersRoles() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
-                    {filteredUsers.length === 0 ? (
+                    {paginatedUsers.length === 0 ? (
                       <tr>
                         <td colSpan={5} className="text-center py-8 text-muted-foreground font-normal">
                           No users found.
                         </td>
                       </tr>
                     ) : (
-                      filteredUsers.map((user: any) => {
+                      paginatedUsers.map((user: any) => {
                         const deptId = user.profile?.department;
                         const dept = departments.find(d => String(d.id) === String(deptId));
                         const initials = user.name
@@ -674,6 +720,17 @@ export default function SuperAdminUsersRoles() {
                   </tbody>
                 </table>
               </div>
+              {filteredUsers.length > PAGE_SIZE && (
+                <div className="p-4 border-t border-slate-200 dark:border-slate-800">
+                  <DataTablePagination 
+                    currentPage={currentPage} 
+                    totalPages={Math.ceil(filteredUsers.length / PAGE_SIZE)} 
+                    onPageChange={setCurrentPage} 
+                    onNextPage={() => setCurrentPage((p) => Math.min(Math.ceil(filteredUsers.length / PAGE_SIZE), p + 1))}
+                    onPrevPage={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  />
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
@@ -701,14 +758,14 @@ export default function SuperAdminUsersRoles() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
-                      {pendingUsers.length === 0 ? (
+                      {paginatedPending.length === 0 ? (
                         <tr>
                           <td colSpan={4} className="text-center py-8 text-muted-foreground font-normal">
                             No pending registrations found.
                           </td>
                         </tr>
                       ) : (
-                        pendingUsers.map((pUser: any) => (
+                        paginatedPending.map((pUser: any) => (
                           <tr key={pUser.id} className="hover:bg-slate-50/30 dark:hover:bg-slate-850/10 transition-colors">
                             <td className="px-5 py-4 font-bold text-slate-850 dark:text-slate-200">
                               {pUser.name}
@@ -746,6 +803,17 @@ export default function SuperAdminUsersRoles() {
                     </tbody>
                   </table>
                 </div>
+              {pendingUsers.length > PAGE_SIZE && (
+                <div className="p-4 border-t border-slate-200 dark:border-slate-800">
+                  <DataTablePagination 
+                    currentPage={currentPage} 
+                    totalPages={Math.ceil(pendingUsers.length / PAGE_SIZE)} 
+                    onPageChange={setCurrentPage} 
+                    onNextPage={() => setCurrentPage((p) => Math.min(Math.ceil(pendingUsers.length / PAGE_SIZE), p + 1))}
+                    onPrevPage={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  />
+                </div>
+              )}
               </CardContent>
             </Card>
           </div>
@@ -763,7 +831,7 @@ export default function SuperAdminUsersRoles() {
                 Fields are linked to keep your hierarchy consistent.
               </p>
             </DialogHeader>
-            <form onSubmit={handleRoleSubmit} className="space-y-4">
+            <form key={editingRole?.id || 'new'} onSubmit={handleRoleSubmit} className="space-y-4">
               <input type="hidden" name="can_manage_users" value={canManageUsers ? "on" : "off"} />
               <input type="hidden" name="can_approve" value={canApprove ? "on" : "off"} />
               <input type="hidden" name="cross_dept_access" value={crossDeptAccess ? "on" : "off"} />
@@ -880,7 +948,7 @@ export default function SuperAdminUsersRoles() {
                 Fields are linked to keep your hierarchy consistent.
               </p>
             </DialogHeader>
-            <form onSubmit={handleUserSubmit} className="space-y-5">
+            <form key={editingUser?.id || 'new'} onSubmit={handleUserSubmit} className="space-y-5">
               
               {/* Section 1: Personal Information */}
               <div className="space-y-3">

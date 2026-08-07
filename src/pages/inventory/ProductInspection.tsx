@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Plus, Search, Filter, ClipboardCheck, Clock, CheckCircle, Eye } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { DataTablePagination } from "@/components/ui/data-table-pagination";
 
 interface Inspection {
   id: string;
@@ -132,6 +133,14 @@ export default function ProductInspection() {
 }
 
 function InspectionTable({ inspections, onProcess }: { inspections: Inspection[], onProcess?: (ins: Inspection) => void }) {
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 12;
+
+  // Reset page when switching tabs
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [inspections.length]);
+
   return (
     <Card>
       <CardContent className="p-0">
@@ -151,7 +160,7 @@ function InspectionTable({ inspections, onProcess }: { inspections: Inspection[]
             {inspections.length === 0 ? (
               <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No inspections found</TableCell></TableRow>
             ) : (
-              inspections.map((ins) => (
+              inspections.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((ins) => (
                 <TableRow key={ins.id}>
                   <TableCell className="font-mono text-sm">{ins.id}</TableCell>
                   <TableCell>{ins.po_id}</TableCell>
@@ -175,6 +184,17 @@ function InspectionTable({ inspections, onProcess }: { inspections: Inspection[]
             )}
           </TableBody>
         </Table>
+        {inspections.length > PAGE_SIZE && (
+          <div className="p-4 border-t border-slate-200 dark:border-slate-800">
+            <DataTablePagination
+              currentPage={currentPage}
+              totalPages={Math.ceil(inspections.length / PAGE_SIZE)}
+              onPageChange={setCurrentPage}
+              onNextPage={() => setCurrentPage((p) => Math.min(Math.ceil(inspections.length / PAGE_SIZE), p + 1))}
+              onPrevPage={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            />
+          </div>
+        )}
       </CardContent>
     </Card>
   );

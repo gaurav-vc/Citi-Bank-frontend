@@ -33,6 +33,7 @@ import {
   Eye,
   MoreHorizontal,
   Filter,
+  ArrowLeft,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -42,6 +43,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { DataTablePagination } from "@/components/ui/data-table-pagination";
 import { toast } from '@/hooks/use-toast';
 import { IndentItem, Approval } from '@/types';
 
@@ -105,6 +107,8 @@ export default function CreateIndent() {
   const [indentsList, setIndentsList] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 12;
   const [selectedIndentDetail, setSelectedIndentDetail] = useState<any | null>(null);
   const [purchaseOrders, setPurchaseOrders] = useState<any[]>([]);
   const [rfqsList, setRfqsList] = useState<any[]>([]);
@@ -548,7 +552,7 @@ export default function CreateIndent() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    getFilteredIndents().map((indent) => {
+                    getFilteredIndents().slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((indent) => {
                         // Find linked PO
                         const linkedRfq = rfqsList.find(r => r.linked_pr === indent.id);
                         const linkedPo = purchaseOrders.find(p => p.linked_rfq === linkedRfq?.id);
@@ -610,6 +614,17 @@ export default function CreateIndent() {
                   )}
                 </TableBody>
               </Table>
+              {getFilteredIndents().length > PAGE_SIZE && (
+                <div className="p-4 border-t border-slate-200 dark:border-slate-800">
+                  <DataTablePagination
+                    currentPage={currentPage}
+                    totalPages={Math.ceil(getFilteredIndents().length / PAGE_SIZE)}
+                    onPageChange={setCurrentPage}
+                    onNextPage={() => setCurrentPage((p) => Math.min(Math.ceil(getFilteredIndents().length / PAGE_SIZE), p + 1))}
+                    onPrevPage={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  />
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -852,31 +867,23 @@ export default function CreateIndent() {
         <div className="space-y-6 animate-fade-in">
           {/* Page Header */}
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-foreground">Create Indent | MOR</h1>
-              <p className="text-muted-foreground">
-                Submit a material or service request for approval
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              <Button variant="outline" onClick={handleSaveDraft} disabled={isSubmitting}>
-                <Save className="h-4 w-4 mr-2" />
-                Save Draft
+            <div className="flex items-center gap-4">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => navigate('/requisitions/all')} 
+                className="rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <ArrowLeft className="h-5 w-5" />
               </Button>
-              <Button onClick={handleSubmit} disabled={isSubmitting}>
-                {isSubmitting ? (
-                  <span className="flex items-center gap-2">
-                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                    Creating...
-                  </span>
-                ) : (
-                  <>
-                    <Send className="h-4 w-4 mr-2" />
-                    Submit for Approval
-                  </>
-                )}
-              </Button>
+              <div>
+                <h1 className="text-3xl font-bold text-foreground">Create Indent | MOR</h1>
+                <p className="text-muted-foreground">
+                  Submit a material or service request for approval
+                </p>
+              </div>
             </div>
+            {/* The action buttons have been moved to the bottom of the form below attachments */}
           </div>
 
           <div className="grid gap-6 lg:grid-cols-3">
@@ -1157,6 +1164,27 @@ export default function CreateIndent() {
                   )}
                 </CardContent>
               </Card>
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-end gap-3 pt-4">
+                <Button variant="outline" onClick={handleSaveDraft} disabled={isSubmitting}>
+                  <Save className="h-4 w-4 mr-2" />
+                  Save Draft
+                </Button>
+                <Button onClick={handleSubmit} disabled={isSubmitting} className="bg-blue-600 hover:bg-blue-700 text-white">
+                  {isSubmitting ? (
+                    <span className="flex items-center gap-2">
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                      Creating...
+                    </span>
+                  ) : (
+                    <>
+                      <Send className="h-4 w-4 mr-2" />
+                      Submit for Approval
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
 
             {/* Right Sidebar */}

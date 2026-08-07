@@ -20,6 +20,33 @@ import {
 import { downloadFile } from '@/utils/downloadFile';
 import { useAuth } from '@/contexts/AuthContext';
 import { WorkflowContainer } from '@/components/workflow/WorkflowContainer';
+import React from 'react';
+import { DataTablePagination } from "@/components/ui/data-table-pagination";
+
+class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean, error: Error | null}> {
+  constructor(props: {children: React.ReactNode}) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="p-6 bg-red-50 border border-red-500 rounded-lg text-red-900 m-4">
+          <h2 className="text-xl font-bold mb-2">Something went wrong.</h2>
+          <pre className="whitespace-pre-wrap text-sm bg-red-100 p-4 rounded overflow-auto">
+            {this.state.error?.toString()}
+            {'\n'}
+            {this.state.error?.stack}
+          </pre>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 interface PaymentProposal {
   id: string;
@@ -467,11 +494,13 @@ export default function PaymentProcessing() {
             <DialogDescription className="text-sm text-muted-foreground">Manage payment proposal details details and actions here.</DialogDescription>
             </DialogHeader>
             {selectedProposal && (
-              <PaymentProposalDetailView 
-                proposal={selectedProposal} 
-                onClose={() => setSelectedProposal(null)} 
-                onUpdate={fetchProposals} 
-              />
+              <ErrorBoundary>
+                <PaymentProposalDetailView 
+                  proposal={selectedProposal} 
+                  onClose={() => setSelectedProposal(null)} 
+                  onUpdate={fetchProposals} 
+                />
+              </ErrorBoundary>
             )}
           </DialogContent>
         </Dialog>
@@ -493,8 +522,16 @@ function PaymentProposalTable({
   selectedProposals: string[];
   onToggleSelect: (id: string) => void;
   fetchProposals: () => void;
-  onViewDetail: (proposal: PaymentProposal) => void;
+  onViewDetail: (p: PaymentProposal) => void;
 }) {
+  const { user } = useAuth();
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 12;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [proposals.length]);
+
   return (
     <Card>
       <CardContent className="p-0">
@@ -525,7 +562,7 @@ function PaymentProposalTable({
                 </TableCell>
               </TableRow>
             ) : (
-              proposals.map((proposal) => {
+              proposals.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((proposal) => {
                 const statusInfo = statusConfig[proposal.status as keyof typeof statusConfig] || {
                   label: proposal.status || 'Unknown',
                   variant: 'secondary' as const,
@@ -676,6 +713,17 @@ function PaymentProposalTable({
             )}
           </TableBody>
         </Table>
+        {proposals.length > PAGE_SIZE && (
+          <div className="p-4 border-t border-slate-200 dark:border-slate-800">
+            <DataTablePagination
+              currentPage={currentPage}
+              totalPages={Math.ceil(proposals.length / PAGE_SIZE)}
+              onPageChange={setCurrentPage}
+              onNextPage={() => setCurrentPage((p) => Math.min(Math.ceil(proposals.length / PAGE_SIZE), p + 1))}
+              onPrevPage={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            />
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -1338,25 +1386,28 @@ function PaymentProposalDetailView({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {proposal.invoices.map((invId) => (
-                <TableRow key={invId}>
-                  <TableCell className="font-mono">{invId}</TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => {
-                          onClose();
-                          navigate(`/vendor/invoices`);
-                        }}
-                      >
-                        View Invoice
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {(Array.isArray(proposal.invoices) ? proposal.invoices : []).map((inv: any, idx) => {
+                const invId = typeof inv === 'string' ? inv : (inv?.invoice_id || inv?.id || `Unknown-${idx}`);
+                return (
+                  <TableRow key={invId}>
+                    <TableCell className="font-mono">{invId}</TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => {
+                            onClose();
+                            navigate(`/vendor/invoices`);
+                          }}
+                        >
+                          View Invoice
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </div>

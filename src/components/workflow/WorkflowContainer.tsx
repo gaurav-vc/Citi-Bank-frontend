@@ -84,7 +84,8 @@ export const WorkflowContainer: React.FC<WorkflowContainerProps> = ({
     );
   }
 
-  const { document: docInfo, steps } = timeline;
+  const docInfo = timeline.document || ({} as any);
+  const steps = timeline.steps || [];
 
   return (
     <div className="space-y-6">

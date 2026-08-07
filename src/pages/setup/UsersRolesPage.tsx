@@ -17,6 +17,7 @@ import {
   ChevronRight, UserCircle2, Save, KeyRound, ShieldAlert, Building
 } from "lucide-react";
 import DepartmentPage from "../masters/DepartmentPage";
+import { DataTablePagination } from "@/components/ui/data-table-pagination";
 
 const CATEGORIES = [
   { id: "dashboard", label: "Dashboard", keys: ["core:dashboard"] },
@@ -39,6 +40,20 @@ export default function UsersRolesPage() {
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<"roles" | "users" | "permissions" | "pending" | "departments">("roles");
   const [searchQuery, setSearchQuery] = useState("");
+  const [userPage, setUserPage] = useState(1);
+  const [rolePage, setRolePage] = useState(1);
+  const PAGE_SIZE = 12;
+
+  const handleClearFilters = () => {
+    setSearchQuery("");
+    setUserPage(1);
+    setRolePage(1);
+  };
+
+  useEffect(() => {
+    setUserPage(1);
+    setRolePage(1);
+  }, [searchQuery, tab]);
 
   // Role form states for switches
   const [canManageUsers, setCanManageUsers] = useState(false);
@@ -467,14 +482,19 @@ export default function UsersRolesPage() {
 
           {/* Search */}
           {(tab === "roles" || tab === "users") && (
-            <div className="relative w-full sm:w-72">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
-              <Input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={tab === "roles" ? "Search roles..." : "Search users..."}
-                className="pl-10 h-10 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-sm rounded-xl"
-              />
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <div className="relative w-full sm:w-72">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                <Input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder={tab === "roles" ? "Search roles..." : "Search users..."}
+                  className="pl-10 h-10 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-sm rounded-xl"
+                />
+              </div>
+              <Button variant="outline" className="h-10 px-4 rounded-xl text-sm" onClick={handleClearFilters}>
+                Clear Filters
+              </Button>
             </div>
           )}
         </div>
@@ -513,7 +533,7 @@ export default function UsersRolesPage() {
                         </td>
                       </tr>
                     ) : (
-                      filteredRoles.map((role: any) => {
+                      filteredRoles.slice((rolePage - 1) * PAGE_SIZE, rolePage * PAGE_SIZE).map((role: any) => {
                         const dept = departments.find(d => String(d.id) === String(role.department_id));
                         return (
                           <tr key={role.id} className="hover:bg-slate-50/30 dark:hover:bg-slate-850/10 transition-colors">
@@ -577,6 +597,17 @@ export default function UsersRolesPage() {
                   </tbody>
                 </table>
               </div>
+              {filteredRoles.length > PAGE_SIZE && (
+                <div className="p-4 border-t border-slate-200 dark:border-slate-800">
+                  <DataTablePagination
+                    currentPage={rolePage}
+                    totalPages={Math.ceil(filteredRoles.length / PAGE_SIZE)}
+                    onPageChange={setRolePage}
+                    onNextPage={() => setRolePage((p) => Math.min(Math.ceil(filteredRoles.length / PAGE_SIZE), p + 1))}
+                    onPrevPage={() => setRolePage((p) => Math.max(1, p - 1))}
+                  />
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
@@ -600,11 +631,11 @@ export default function UsersRolesPage() {
                     {filteredUsers.length === 0 ? (
                       <tr>
                         <td colSpan={5} className="text-center py-8 text-muted-foreground font-normal">
-                          No users found.
+                          No users found matching search.
                         </td>
                       </tr>
                     ) : (
-                      filteredUsers.map((user: any) => {
+                      filteredUsers.slice((userPage - 1) * PAGE_SIZE, userPage * PAGE_SIZE).map((user: any) => {
                         const deptId = user.profile?.department;
                         const dept = departments.find(d => String(d.id) === String(deptId));
                         const initials = user.name
@@ -669,6 +700,17 @@ export default function UsersRolesPage() {
                   </tbody>
                 </table>
               </div>
+              {filteredUsers.length > PAGE_SIZE && (
+                <div className="p-4 border-t border-slate-200 dark:border-slate-800">
+                  <DataTablePagination
+                    currentPage={userPage}
+                    totalPages={Math.ceil(filteredUsers.length / PAGE_SIZE)}
+                    onPageChange={setUserPage}
+                    onNextPage={() => setUserPage((p) => Math.min(Math.ceil(filteredUsers.length / PAGE_SIZE), p + 1))}
+                    onPrevPage={() => setUserPage((p) => Math.max(1, p - 1))}
+                  />
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
@@ -758,7 +800,7 @@ export default function UsersRolesPage() {
                 Fields are linked to keep your hierarchy consistent.
               </p>
             </DialogHeader>
-            <form onSubmit={handleRoleSubmit} className="space-y-4">
+            <form key={editingRole ? editingRole.id : 'new'} onSubmit={handleRoleSubmit} className="space-y-4">
               <input type="hidden" name="can_manage_users" value={canManageUsers ? "on" : "off"} />
               <input type="hidden" name="can_approve" value={canApprove ? "on" : "off"} />
               <input type="hidden" name="cross_dept_access" value={crossDeptAccess ? "on" : "off"} />
@@ -848,7 +890,7 @@ export default function UsersRolesPage() {
                 Fields are linked to keep your hierarchy consistent.
               </p>
             </DialogHeader>
-            <form onSubmit={handleUserSubmit} className="space-y-5">
+            <form key={editingUser ? editingUser.id : 'new'} onSubmit={handleUserSubmit} className="space-y-5">
               
               {/* Section 1: Personal Information */}
               <div className="space-y-3">

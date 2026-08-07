@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/dialog';
 import { Plus, Users, Building, ShieldCheck, MapPin, Layers, Settings, CheckCircle2, XCircle, Shield } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { DataTablePagination } from "@/components/ui/data-table-pagination";
 
 interface Org {
   id: number;
@@ -68,6 +69,9 @@ export default function EnterpriseHierarchy() {
   const [isSiteOpen, setIsSiteOpen] = useState(false);
   const [isDeptOpen, setIsDeptOpen] = useState(false);
   const [isAssignOpen, setIsAssignOpen] = useState(false);
+  const [usersPage, setUsersPage] = useState(1);
+  const [permissionsPage, setPermissionsPage] = useState(1);
+  const PAGE_SIZE = 12;
 
   // Forms State
   const [newOrg, setNewOrg] = useState({
@@ -1320,7 +1324,7 @@ export default function EnterpriseHierarchy() {
                       </tr>
                     </thead>
                     <tbody>
-                      {users.map(u => (
+                      {users.slice((usersPage - 1) * PAGE_SIZE, usersPage * PAGE_SIZE).map(u => (
                         <tr key={u.user_id} className="border-b hover:bg-muted/30">
                           <td className="py-3 px-3">
                             <p className="font-semibold text-sm">{u.user_name}</p>
@@ -1342,6 +1346,17 @@ export default function EnterpriseHierarchy() {
                       ))}
                     </tbody>
                   </table>
+                  {users.length > PAGE_SIZE && (
+                    <div className="p-4 border-t border-slate-200 dark:border-slate-800">
+                      <DataTablePagination
+                        currentPage={usersPage}
+                        totalPages={Math.ceil(users.length / PAGE_SIZE)}
+                        onPageChange={setUsersPage}
+                        onNextPage={() => setUsersPage((p) => Math.min(Math.ceil(users.length / PAGE_SIZE), p + 1))}
+                        onPrevPage={() => setUsersPage((p) => Math.max(1, p - 1))}
+                      />
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -1370,7 +1385,7 @@ export default function EnterpriseHierarchy() {
                       </tr>
                     </thead>
                     <tbody>
-                      {permissionsMatrix.map((item, idx) => (
+                      {permissionsMatrix.slice((permissionsPage - 1) * PAGE_SIZE, permissionsPage * PAGE_SIZE).map((item, idx) => (
                         <tr key={idx} className="border-b hover:bg-muted/30">
                           <td className="py-3 px-4 font-medium">{item.feature}</td>
                           <td className="py-3 px-2 text-center">
@@ -1392,6 +1407,17 @@ export default function EnterpriseHierarchy() {
                       ))}
                     </tbody>
                   </table>
+                  {permissionsMatrix.length > PAGE_SIZE && (
+                    <div className="p-4 border-t border-slate-200 dark:border-slate-800">
+                      <DataTablePagination
+                        currentPage={permissionsPage}
+                        totalPages={Math.ceil(permissionsMatrix.length / PAGE_SIZE)}
+                        onPageChange={setPermissionsPage}
+                        onNextPage={() => setPermissionsPage((p) => Math.min(Math.ceil(permissionsMatrix.length / PAGE_SIZE), p + 1))}
+                        onPrevPage={() => setPermissionsPage((p) => Math.max(1, p - 1))}
+                      />
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

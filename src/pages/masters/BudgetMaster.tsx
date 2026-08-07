@@ -12,9 +12,10 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogT
 import { Progress } from '@/components/ui/progress';
 import { Plus, Download, Upload, Wallet, TrendingUp, TrendingDown, AlertTriangle, Edit, Copy, Trash2, History } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, PieChart, Pie, Cell } from 'recharts';
-import { toast } from 'sonner';
 import { downloadFile } from '@/utils/downloadFile';
+import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { DataTablePagination } from "@/components/ui/data-table-pagination";
 
 type BudgetType = 'opex' | 'capex';
 type Period = 'monthly' | 'quarterly' | 'annual';
@@ -81,8 +82,11 @@ export default function BudgetMaster() {
   const canImport = !!(role && ['super_admin', 'finance_manager', 'finance_executive', 'cxo'].includes(role));
   const canExport = !!(role && ['super_admin', 'finance_manager', 'finance_executive', 'cxo'].includes(role));
 
+  const [exportError, setExportError] = useState<string | null>(null);
   const [rows, setRows] = useState<BudgetLine[]>([]);
   const [fy, setFy] = useState('FY 2025-26');
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 12;
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this budget line?')) return;
@@ -180,18 +184,21 @@ export default function BudgetMaster() {
   };
 
   const handleExport = async () => {
+    setExportError(null);
     toast.info('Export started. Budget list is being exported to Excel.');
 
     try {
+      const activeToken = localStorage.getItem('campusspend_token') || token || '';
       await downloadFile(
         `${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/budgets/export/?format=xlsx`,
         `budgets_export_${Date.now()}.xlsx`,
-        token || ''
+        activeToken
       );
 
       toast.success('Budget list exported successfully.');
     } catch (err: any) {
-      toast.error(err.message || 'An error occurred during export.');
+      toast.error('An error occurred during export.');
+      setExportError(err.message || String(err) || 'Unknown error');
     }
   };
 
@@ -252,6 +259,10 @@ export default function BudgetMaster() {
     ),
     [rows, fy, typeFilter, towerFilter]
   );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filtered.length]);
 
   const totals = useMemo(() => {
     const budget = filtered.reduce((s, r) => s + r.annualBudget, 0);
@@ -384,6 +395,18 @@ export default function BudgetMaster() {
   return (
     <MainLayout>
       <div className="space-y-6">
+        {exportError && (
+          <div className="p-6 bg-red-50 border border-red-500 rounded-lg text-red-900 shadow-sm">
+            <h2 className="text-xl font-bold mb-2 flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-red-600" />
+              Export Failed
+            </h2>
+            <pre className="whitespace-pre-wrap text-sm bg-red-100 p-4 rounded overflow-auto font-mono">
+              {exportError}
+            </pre>
+            <p className="text-sm mt-3 text-red-700">Please copy this error message and send it back so we can debug!</p>
+          </div>
+        )}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl font-semibold">Budget Master & Planning</h1>
@@ -513,7 +536,7 @@ export default function BudgetMaster() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filtered.map(r => {
+                    {filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map(r => {
                       const consumed = r.actual + r.committed;
                       const util = r.annualBudget ? Math.round((consumed / r.annualBudget) * 100) : 0;
                       const remaining = Math.max(0, r.annualBudget - consumed);
@@ -594,6 +617,17 @@ export default function BudgetMaster() {
                     })}
                   </TableBody>
                 </Table>
+                {filtered.length > PAGE_SIZE && (
+                  <div className="p-4 border-t border-slate-200 dark:border-slate-800">
+                    <DataTablePagination
+                      currentPage={currentPage}
+                      totalPages={Math.ceil(filtered.length / PAGE_SIZE)}
+                      onPageChange={setCurrentPage}
+                      onNextPage={() => setCurrentPage((p) => Math.min(Math.ceil(filtered.length / PAGE_SIZE), p + 1))}
+                      onPrevPage={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    />
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -648,7 +682,7 @@ export default function BudgetMaster() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filtered.map(r => {
+                    {filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map(r => {
                       const variance = r.annualBudget - r.actual;
                       const pct = r.annualBudget ? (variance / r.annualBudget) * 100 : 0;
                       const over = variance < 0;
@@ -670,6 +704,17 @@ export default function BudgetMaster() {
                     })}
                   </TableBody>
                 </Table>
+                {filtered.length > PAGE_SIZE && (
+                  <div className="p-4 border-t border-slate-200 dark:border-slate-800">
+                    <DataTablePagination
+                      currentPage={currentPage}
+                      totalPages={Math.ceil(filtered.length / PAGE_SIZE)}
+                      onPageChange={setCurrentPage}
+                      onNextPage={() => setCurrentPage((p) => Math.min(Math.ceil(filtered.length / PAGE_SIZE), p + 1))}
+                      onPrevPage={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    />
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

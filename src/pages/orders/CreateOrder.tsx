@@ -16,6 +16,7 @@ import {
   Plus, Trash2, ShoppingCart, Calendar, 
   Wrench, Send, Save, ArrowLeft, Upload
 } from 'lucide-react';
+import { DataTablePagination } from "@/components/ui/data-table-pagination";
 
 interface OrderItem {
   id: string;
@@ -52,6 +53,8 @@ export default function CreateOrder() {
   const [items, setItems] = useState<OrderItem[]>([
     { id: '1', itemName: '', description: '', quantity: 1, uom: 'Nos', rate: 0, amount: 0, deliveredQty: 0, balanceQty: 1 }
   ]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 12;
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -533,7 +536,9 @@ export default function CreateOrder() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {items.map((item, index) => (
+                  {items.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((item, i) => {
+                    const index = (currentPage - 1) * PAGE_SIZE + i;
+                    return (
                     <TableRow key={item.id}>
                       <TableCell>{index + 1}</TableCell>
                       <TableCell className="w-[180px]">
@@ -606,9 +611,21 @@ export default function CreateOrder() {
                         </Button>
                       </TableCell>
                     </TableRow>
-                  ))}
+                    );
+                  })}
                 </TableBody>
               </Table>
+              {items.length > PAGE_SIZE && (
+                <div className="p-4 border-t border-slate-200 dark:border-slate-800">
+                  <DataTablePagination
+                    currentPage={currentPage}
+                    totalPages={Math.ceil(items.length / PAGE_SIZE)}
+                    onPageChange={setCurrentPage}
+                    onNextPage={() => setCurrentPage((p) => Math.min(Math.ceil(items.length / PAGE_SIZE), p + 1))}
+                    onPrevPage={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  />
+                </div>
+              )}
             </div>
 
             {/* Totals */}

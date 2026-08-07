@@ -6,7 +6,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
-import { ChevronRight, Settings, ShieldCheck, Eye, EyeOff, Save, Check, Star } from "lucide-react";
+import { ChevronRight, Settings, ShieldCheck, Eye, EyeOff, Save, Check, Star, X } from "lucide-react";
 
 interface ModuleItem {
   key: string;
@@ -319,6 +319,24 @@ export default function SuperAdminPermissions() {
                       )}
                     </div>
                   </div>
+
+                  {(selectedOrgId || selectedSiteId || selectedRoleId) && (
+                    <div className="flex flex-col gap-1.5">
+                      <span className="text-[10px] uppercase font-bold text-transparent tracking-wider">.</span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedOrgId("");
+                          setSelectedSiteId("");
+                          setSelectedRoleId("");
+                        }}
+                        className="text-xs font-semibold h-9"
+                      >
+                        <X className="mr-1 h-3 w-3" /> Clear Filters
+                      </Button>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-2.5">

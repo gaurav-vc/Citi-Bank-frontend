@@ -42,6 +42,7 @@ import { downloadFile } from '@/utils/downloadFile';
 import { useAuth } from '@/contexts/AuthContext';
 import { WorkflowContainer } from '@/components/workflow/WorkflowContainer';
 import { useParams, useNavigate } from 'react-router-dom';
+import { DataTablePagination } from "@/components/ui/data-table-pagination";
 
 export default function BillingInvoices() {
   const { token, user } = useAuth();
@@ -50,6 +51,15 @@ export default function BillingInvoices() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 12;
+
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+
+  // Reset page when switching tabs
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [invoices.length, statusFilter]);
 
   useEffect(() => {
     fetchInvoices();
@@ -203,7 +213,7 @@ export default function BillingInvoices() {
     }
   };
 
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
 
   useEffect(() => {
@@ -424,7 +434,7 @@ export default function BillingInvoices() {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredInvoices.map((invoice) => {
+                      {filteredInvoices.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((invoice) => {
                         const isOverdue = new Date(invoice.dueDate) < new Date() && invoice.status !== 'paid';
 
                         return (
@@ -565,6 +575,17 @@ export default function BillingInvoices() {
                     </tbody>
                   </table>
                 </div>
+                {filteredInvoices.length > PAGE_SIZE && (
+                  <div className="p-4 border-t border-slate-200 dark:border-slate-800">
+                    <DataTablePagination
+                      currentPage={currentPage}
+                      totalPages={Math.ceil(filteredInvoices.length / PAGE_SIZE)}
+                      onPageChange={setCurrentPage}
+                      onNextPage={() => setCurrentPage((p) => Math.min(Math.ceil(filteredInvoices.length / PAGE_SIZE), p + 1))}
+                      onPrevPage={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    />
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
