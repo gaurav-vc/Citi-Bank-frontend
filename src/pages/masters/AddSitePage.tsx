@@ -72,6 +72,7 @@ export default function AddSitePage() {
   const [contactEmail, setContactEmail] = useState("");
   const [adminRole, setAdminRole] = useState("admin");
   const [moduleState, setModuleState] = useState<Record<string, boolean>>(buildInitialModuleState);
+  const [selectedOrgId, setSelectedOrgId] = useState("");
 
   // Post-save provisioning state
   const [provisionResult, setProvisionResult] = useState<ProvisionResult | null>(null);
@@ -114,11 +115,20 @@ export default function AddSitePage() {
       setContactName(siteData.site_manager_name || "");
       setContactPhone(siteData.site_head || "");
       setContactEmail(siteData.site_manager_email || "");
+      if (siteData.organization) {
+        setSelectedOrgId(String(siteData.organization));
+      }
       if (siteData.module_configuration) {
         setModuleState(siteData.module_configuration);
       }
     }
   }, [siteData]);
+
+  useEffect(() => {
+    if (organizationId) {
+      setSelectedOrgId(organizationId);
+    }
+  }, [organizationId]);
 
   useEffect(() => {
     if (isEdit) return;
@@ -173,8 +183,15 @@ export default function AddSitePage() {
     setIsSaving(true);
     let shouldNavigate = true; // local flag — avoids stale closure issues with state
 
+    const finalOrgId = organizationId || selectedOrgId;
+    if (!finalOrgId) {
+      toast({ title: "Validation Error", description: "Organization is required.", variant: "destructive" });
+      setIsSaving(false);
+      return;
+    }
+
     const payload = {
-      organization: organizationId ? Number(organizationId) : undefined,
+      organization: Number(finalOrgId),
       name: siteName.trim(),
       code: siteCode.trim(),
       site_type: project || "-",
@@ -411,6 +428,24 @@ export default function AddSitePage() {
           <section className="panel add-site-card">
             <h2 className="add-site-section-heading">Site Details</h2>
             <div className="add-org-grid two add-site-fields">
+              <div className="field add-site-full-row">
+                <label>
+                  Organization <span className="required-star">*</span>
+                </label>
+                <select
+                  className="filter-input add-site-select"
+                  value={selectedOrgId}
+                  onChange={(e) => setSelectedOrgId(e.target.value)}
+                  disabled={!!organizationId || isEdit}
+                >
+                  <option value="">Select Organization</option>
+                  {orgs.map((o: any) => (
+                    <option key={o.id} value={o.id}>
+                      {o.name} {o.code ? `(${o.code})` : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <div className="field">
                 <label>
                   Site Name <span className="required-star">*</span>

@@ -27,10 +27,10 @@ const MODULE_ACCESS_SECTIONS: ModuleSection[] = [
     items: [
       { key: "procurement:indents", label: "Indents", starred: true },
       { key: "procurement:rfqs", label: "RFQs" },
-      { key: "procurement:rfqs", label: "Quotation Comparison" },
+      { key: "procurement:rfqs_compare", label: "Quotation Comparison" },
       { key: "procurement:orders", label: "Purchase Orders" },
       { key: "procurement:vendors", label: "Vendors" },
-      { key: "procurement:indents", label: "Approvals" }
+      { key: "procurement:approvals", label: "Approvals" }
     ]
   },
   {
@@ -40,10 +40,10 @@ const MODULE_ACCESS_SECTIONS: ModuleSection[] = [
       { key: "procurement:items", label: "Item Master" },
       { key: "procurement:inventory", label: "Stock Ledger", starred: true },
       { key: "procurement:grn", label: "GRN Entry" },
-      { key: "procurement:inventory", label: "Issue To Site (GDN)" },
-      { key: "procurement:inventory", label: "Stock Transfer" },
-      { key: "procurement:inventory", label: "Scrap Disposal" },
-      { key: "procurement:inventory", label: "Return To Vendor" }
+      { key: "procurement:issue_to_site", label: "Issue To Site (GDN)" },
+      { key: "procurement:inventory_transfer", label: "Stock Transfer" },
+      { key: "procurement:inventory_scrap", label: "Scrap Disposal" },
+      { key: "procurement:inventory_rtv", label: "Return To Vendor" }
     ]
   },
   {
@@ -58,10 +58,10 @@ const MODULE_ACCESS_SECTIONS: ModuleSection[] = [
     title: "Finance & Billing",
     items: [
       { key: "procurement:billing", label: "Invoices", starred: true },
-      { key: "procurement:billing", label: "Finance Approvals" },
-      { key: "procurement:payments", label: "Payment Proposals" },
+      { key: "procurement:billing_approvals", label: "Finance Approvals" },
+      { key: "procurement:payments_proposals", label: "Payment Proposals" },
       { key: "procurement:payments", label: "Payments" },
-      { key: "procurement:payments", label: "UTR Management" },
+      { key: "procurement:payments_utr", label: "UTR Management" },
       { key: "procurement:budgets", label: "Budgets" }
     ]
   },
@@ -70,10 +70,10 @@ const MODULE_ACCESS_SECTIONS: ModuleSection[] = [
     title: "Reports & Analytics",
     items: [
       { key: "core:dashboard", label: "Dashboard", starred: true },
-      { key: "procurement:reports", label: "Spend Analytics" },
-      { key: "procurement:reports", label: "Inventory Reports" },
-      { key: "procurement:reports", label: "Invoice Reports" },
-      { key: "procurement:reports", label: "Audit Reports" },
+      { key: "procurement:reports_spend", label: "Spend Analytics" },
+      { key: "procurement:reports_inventory", label: "Inventory Reports" },
+      { key: "procurement:reports_invoice", label: "Invoice Reports" },
+      { key: "procurement:reports_audit", label: "Audit Reports" },
       { key: "procurement:ai", label: "AI Recommendations" }
     ]
   }
@@ -397,17 +397,6 @@ export default function SuperAdminPermissions() {
                             </td>
                             {ACTION_KEYS.map((action) => (
                               <td key={`${group.id}-${action}`} className="px-5 py-3.5 text-center">
-                                <label className="inline-flex items-center justify-center cursor-pointer">
-                                  <input
-                                    type="checkbox"
-                                    checked={isGroupActionChecked(group, action)}
-                                    ref={(el) => {
-                                      if (el) el.indeterminate = isGroupActionIndeterminate(group, action);
-                                    }}
-                                    onChange={(e) => toggleGroupPermission(group, action, e.target.checked)}
-                                    className="h-4 w-4 rounded border-slate-350 dark:border-slate-800 text-orange-600 focus:ring-orange-500"
-                                  />
-                                </label>
                               </td>
                             ))}
                           </tr>

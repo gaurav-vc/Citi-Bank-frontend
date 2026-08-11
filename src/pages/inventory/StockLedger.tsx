@@ -65,7 +65,7 @@ export default function StockLedger() {
 
     try {
       await downloadFile(
-        `${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/inventory/inventory/export/?format=xlsx`,
+        `${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/inventory/export/?format=xlsx`,
         `inventory_export_${Date.now()}.xlsx`,
         token || ''
       );
@@ -97,7 +97,7 @@ export default function StockLedger() {
 
     try {
       const token = localStorage.getItem('campusspend_token');
-      const res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/inventory/inventory/import/`, {
+      const res = await fetch(`${(import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'))}/api/inventory/import/`, {
         method: 'POST',
         headers: token ? { 'Authorization': `Bearer ${token}` } : {},
         body: formData,
@@ -431,7 +431,9 @@ export default function StockLedger() {
                           Current: {item.currentStock} {item.uom} | Min: {item.minStockLevel}
                         </p>
                       </div>
-                      <Button size="sm" variant="destructive">
+                      <Button size="sm" variant="destructive" onClick={() => {
+                        window.location.href = `/requisitions/create?item=${item.id}`;
+                      }}>
                         Create Indent
                       </Button>
                     </div>

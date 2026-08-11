@@ -290,9 +290,9 @@ export default function SuperAdminBillingLogDetail() {
                 Accepted payment methods?
               </button>
             </div>
-            <button className="w-full mt-4 px-4 py-3 bg-white border border-slate-200 rounded-lg text-[13px] font-medium text-slate-700 hover:bg-slate-50 transition-colors shadow-sm text-center">
+            <Link to="/super-admin/billing-help" className="w-full mt-4 px-4 py-3 bg-white border border-slate-200 rounded-lg text-[13px] font-medium text-slate-700 hover:bg-slate-50 transition-colors shadow-sm text-center block">
               Visit Help Center
-            </button>
+            </Link>
           </div>
         </div>
 

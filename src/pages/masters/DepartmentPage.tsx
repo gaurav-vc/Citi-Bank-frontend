@@ -39,12 +39,33 @@ export default function DepartmentPage() {
     queryFn: api.getDepartments,
   });
 
+  const { data: orgs = [], isLoading: isLoadingOrgs } = useQuery({
+    queryKey: ["organizations"],
+    queryFn: api.getOrganizations,
+    enabled: user?.role === "super_admin",
+  });
+
   const { data: sites = [], isLoading: isLoadingSites } = useQuery({
     queryKey: ["sites"],
     queryFn: api.getSites,
   });
 
-  const loading = isLoadingDepts || isLoadingSites;
+  const loading = isLoadingDepts || isLoadingSites || isLoadingOrgs;
+
+  const [selectedOrgId, setSelectedOrgId] = useState("");
+
+  const filteredSites = useMemo(() => {
+    if (user?.role === "super_admin" && selectedOrgId) {
+      return sites.filter((s: any) => s.organization === Number(selectedOrgId));
+    }
+    return sites;
+  }, [sites, user?.role, selectedOrgId]);
+
+  useEffect(() => {
+    if (filteredSites.length === 1 && !siteId) {
+      setSiteId(String(filteredSites[0].id));
+    }
+  }, [filteredSites, siteId]);
 
   const filteredRows = useMemo(() => {
     return departments.filter((row: any) => {
@@ -130,8 +151,23 @@ export default function DepartmentPage() {
       toast({ title: "Required Field", description: "Department Name is required", variant: "destructive" });
       return;
     }
+    
+    let finalSiteId = siteId;
+    if (!finalSiteId && user?.role !== "super_admin") {
+      if (user?.profile?.site_id) {
+        finalSiteId = String(user.profile.site_id);
+      } else if (filteredSites.length > 0) {
+        finalSiteId = String(filteredSites[0].id);
+      }
+    }
+
+    if (!finalSiteId) {
+      toast({ title: "Required Field", description: "You must assign the department to a specific site.", variant: "destructive" });
+      return;
+    }
+    
     const payload = {
-      site: siteId ? Number(siteId) : null,
+      site: Number(finalSiteId),
       name: name.trim(),
       code: code.trim() || undefined,
       description: description.trim() || undefined,
@@ -324,15 +360,35 @@ export default function DepartmentPage() {
                     <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Department Code</Label>
                     <Input value={code} onChange={e => setCode(e.target.value)} placeholder="e.g. FM-001" className="bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800" />
                   </div>
+                  {user?.role === "super_admin" && (
+                    <div className="space-y-1.5 md:col-span-2">
+                      <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Organization (Super Admin Filter)</Label>
+                      <select 
+                        value={selectedOrgId} 
+                        onChange={e => {
+                          setSelectedOrgId(e.target.value);
+                          setSiteId(""); // Reset site when org changes
+                        }}
+                        className="w-full h-10 px-3 rounded-md bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="">All Organizations</option>
+                        {orgs.map((o: any) => (
+                          <option key={o.id} value={o.id}>{o.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Assign to Site</Label>
+                    <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Assign to Site <span className="text-red-500">*</span></Label>
                     <select 
                       value={siteId} 
                       onChange={e => setSiteId(e.target.value)}
-                      className="w-full h-10 px-3 rounded-md bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                      disabled={user?.role !== "super_admin" && filteredSites.length === 1}
+                      className="w-full h-10 px-3 rounded-md bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60"
                     >
-                      <option value="">Global / No Site</option>
-                      {sites.map((s: any) => (
+                      <option value="">Select a Site</option>
+                      {filteredSites.map((s: any) => (
                         <option key={s.id} value={s.id}>{s.name}</option>
                       ))}
                     </select>

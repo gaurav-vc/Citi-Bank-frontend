@@ -170,6 +170,24 @@ export default function CreateIndent() {
     fetchCatalog();
   }, []);
 
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const prefillItemId = searchParams.get('item');
+    if (prefillItemId && items.length > 0 && indentItems.length === 0) {
+      const item = items.find((i) => String(i.id) === prefillItemId);
+      if (item) {
+        setIndentItems([{
+          itemId: item.id,
+          itemName: item.name,
+          quantity: item.reorderLevel && item.reorderLevel > item.currentStock ? item.reorderLevel - item.currentStock : 1,
+          uom: item.uom,
+          estimatedRate: item.unitPrice || 0,
+          currentStock: item.currentStock
+        }]);
+      }
+    }
+  }, [location.search, items, indentItems.length]);
+
   const fetchIndents = async () => {
     setIsLoading(true);
     try {

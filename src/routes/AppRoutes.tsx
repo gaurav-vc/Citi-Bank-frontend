@@ -3,6 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { ProtectedRoute } from './ProtectedRoute';
 import { PermissionRoute } from './PermissionRoute';
 import { OrganizationRoute } from './OrganizationRoute';
+import { MainLayout } from "@/components/layout/MainLayout";
 
 // Real page imports from @/pages
 import Login from '../pages/Login';
@@ -55,6 +56,7 @@ import SuperAdminBillingLogDetail from '../pages/super-admin/BillingLogDetail';
 
 import SuperAdminUsersRoles from '../pages/super-admin/UsersRoles';
 import SuperAdminPermissions from '../pages/super-admin/Permissions';
+import SuperAdminBillingHelpCenter from '../pages/super-admin/BillingHelpCenter';
 
 export function AppRoutes() {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -79,6 +81,7 @@ export function AppRoutes() {
       <Route path="/super-admin/dashboard" element={<ProtectedRoute><PermissionRoute roles={['super_admin']}><SuperAdminDashboard /></PermissionRoute></ProtectedRoute>} />
       <Route path="/super-admin/billing" element={<ProtectedRoute><PermissionRoute roles={['super_admin']}><SuperAdminBillingLogs /></PermissionRoute></ProtectedRoute>} />
       <Route path="/super-admin/billing/:id/log" element={<ProtectedRoute><PermissionRoute roles={['super_admin']}><SuperAdminBillingLogDetail /></PermissionRoute></ProtectedRoute>} />
+      <Route path="/super-admin/billing-help" element={<ProtectedRoute><PermissionRoute roles={['super_admin']}><SuperAdminBillingHelpCenter /></PermissionRoute></ProtectedRoute>} />
       <Route path="/super-admin/organizations" element={<ProtectedRoute><PermissionRoute roles={['super_admin']}><OrganizationsPage /></PermissionRoute></ProtectedRoute>} />
       <Route path="/super-admin/sites" element={<ProtectedRoute><PermissionRoute roles={['super_admin']}><SitesSetupPage /></PermissionRoute></ProtectedRoute>} />
       <Route path="/super-admin/users-roles" element={<ProtectedRoute><PermissionRoute roles={['super_admin']}><SuperAdminUsersRoles /></PermissionRoute></ProtectedRoute>} />
@@ -263,7 +266,9 @@ export function AppRoutes() {
               permissionKey="core:departments"
               action="view"
             >
-              <DepartmentPage />
+              <MainLayout>
+                <DepartmentPage />
+              </MainLayout>
             </PermissionRoute>
           </ProtectedRoute>
         }
@@ -634,6 +639,16 @@ export function AppRoutes() {
           <ProtectedRoute>
             <PermissionRoute roles={['super_admin', 'store_keeper', 'site_manager', 'facility_manager', 'project_head', 'cxo']} permissionKey="procurement:inventory">
               <ScrapDisposal />
+            </PermissionRoute>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/inventory/rtv"
+        element={
+          <ProtectedRoute>
+            <PermissionRoute roles={['super_admin', 'store_keeper', 'site_manager', 'facility_manager', 'project_head', 'cxo']} permissionKey="procurement:inventory_rtv">
+              <RTVEntry />
             </PermissionRoute>
           </ProtectedRoute>
         }
