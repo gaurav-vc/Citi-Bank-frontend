@@ -3,6 +3,7 @@ import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { useAuth } from '@/contexts/AuthContext';
 import { Building, MapPin, Layers } from 'lucide-react';
+import { AIAssistant } from '@/components/AIAssistant';
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -48,6 +49,7 @@ export function MainLayout({ children }: MainLayoutProps) {
           </div>
         </main>
       </div>
+      <AIAssistant />
     </div>
   );
 }

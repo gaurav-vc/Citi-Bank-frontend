@@ -23,6 +23,7 @@ import DepartmentPage from '@/pages/masters/DepartmentPage';
 
 import UsersRolesPage from '@/pages/setup/UsersRolesPage';
 import ModulesPermissionsPage from '@/pages/setup/ModulesPermissionsPage';
+import DocumentationConfigPage from '../pages/setup/DocumentationConfigPage';
 import { WorkflowSetupPage } from '@/pages/setup/WorkflowSetupPage';
 import CreateIndent from '@/pages/requisitions/CreateIndent';
 import TenderingRFQ from '@/pages/tendering/TenderingRFQ';
@@ -313,6 +314,20 @@ export function AppRoutes() {
               action="view"
             >
               <ModulesPermissionsPage />
+            </PermissionRoute>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/setup/documentation-config"
+        element={
+          <ProtectedRoute>
+            <PermissionRoute
+              roles={['super_admin', 'client_admin', 'admin', 'cxo', 'procurement_manager', 'finance_manager', 'facility_manager', 'project_head', 'site_manager', 'store_keeper']}
+              permissionKey="core:settings"
+              action="view"
+            >
+              <DocumentationConfigPage />
             </PermissionRoute>
           </ProtectedRoute>
         }

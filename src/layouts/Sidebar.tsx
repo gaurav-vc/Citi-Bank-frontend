@@ -109,6 +109,7 @@ const pathMap: Record<string, string> = {
   'core:departments': '/masters/departments',
   'core:roles': '/masters/roles-users',
   'core:settings': '/setup/modules',
+  'core:documentation': '/setup/documentation-config',
   'core:workflows': '/setup/workflows',
   'core:setup': '/setup/users-roles',
   'procurement:vendors': '/masters/vendors',
@@ -242,7 +243,8 @@ const staticModulesFallback: DBModule[] = [
       { key: 'core:users', label: 'Users & Roles' },
       { key: 'core:settings', label: 'Role Permissions' },
       { key: 'core:workflows', label: 'Approval Workflows' },
-      { key: 'core:departments', label: 'Departments' }
+      { key: 'core:departments', label: 'Departments' },
+      { key: 'core:documentation', label: 'System Config' }
     ]
   }
 ];
@@ -305,7 +307,7 @@ export function Sidebar() {
     if (user.role === 'super_admin') return key.startsWith('superadmin:');
 
     // Always allow Setup items for admin/client_admin regardless of DB permissions
-    if (key === 'core:users' || key === 'core:settings') {
+    if (key === 'core:users' || key === 'core:settings' || key === 'core:documentation') {
       if (user.role === 'admin' || user.role === 'client_admin') return true;
     }
     if (key === 'core:sites' || key === 'core:departments' || key === 'core:roles') {
@@ -330,7 +332,7 @@ export function Sidebar() {
     // Alias mappings for sidebar keys that map to permission keys
     if (key === 'core:setup') checkKey = 'core:users';
     if (key === 'core:roles') checkKey = 'core:users';
-    if (key === 'core:settings') checkKey = 'core:users';
+    if (key === 'core:settings' || key === 'core:documentation') checkKey = 'core:users';
     if (key === 'procurement:approvals') checkKey = 'procurement:indents';
     if (key === 'procurement:workflows') checkKey = 'procurement:indents';
     if (key === 'procurement:inventory_master') checkKey = 'procurement:items';

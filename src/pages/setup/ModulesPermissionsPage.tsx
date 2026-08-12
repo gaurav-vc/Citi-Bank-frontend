@@ -385,6 +385,7 @@ export default function ModulesPermissionsPage() {
                                 <Switch
                                   checked={!!featurePerms[action]}
                                   onCheckedChange={(checked) => togglePermission(feature.key, action, checked)}
+                                  className="scale-90 data-[state=checked]:!bg-[#10b981]"
                                 />
                               </td>
                             ))}

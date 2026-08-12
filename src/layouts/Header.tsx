@@ -2,8 +2,10 @@ import { useState, useEffect, useRef } from 'react';
 import { dashboardAPI } from '@/api/dashboard';
 import { requisitionsAPI } from '@/api/requisitions';
 import { searchAPI, SearchResult } from '@/api/search';
+import { notificationsAPI } from '@/api/notifications';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { toast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -16,8 +18,16 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Search, Bell, Settings, User, LogOut, HelpCircle } from 'lucide-react';
+import { Search, Bell, Settings, User, LogOut, HelpCircle, BookOpen, FileText, PlayCircle, Lightbulb } from 'lucide-react';
 import { RoleLabels } from '@/types';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 export function Header() {
   const { user, logout } = useAuth();
@@ -25,6 +35,33 @@ export function Header() {
   const [pendingCount, setPendingCount] = useState(0);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [supportInfo, setSupportInfo] = useState<any>(null);
+  const [isDocsOpen, setIsDocsOpen] = useState(false);
+  const [docs, setDocs] = useState<any[]>([]);
+
+  const handleDocClick = (e: React.MouseEvent, doc: any) => {
+    e.preventDefault();
+    if (doc.url) {
+      window.open(doc.url, '_blank');
+    } else if (doc.video_file) {
+      window.open(doc.video_file, '_blank');
+    } else {
+      toast({
+        title: "Coming Soon",
+        description: "Detailed documentation for this module will be added shortly.",
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (isDocsOpen && docs.length === 0) {
+      dashboardAPI.getDocumentation()
+        .then((res: any) => {
+          const data = Array.isArray(res) ? res : (res.results || []);
+          setDocs(data);
+        })
+        .catch(err => console.error('Failed to fetch docs:', err));
+    }
+  }, [isDocsOpen]);
   
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
@@ -33,6 +70,24 @@ export function Header() {
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const searchRef = useRef<HTMLDivElement>(null);
+
+  const handleNotificationClick = async (notif: any) => {
+    try {
+      if (!notif.is_read) {
+        await notificationsAPI.markAsRead(notif.id);
+        setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, is_read: true } : n));
+      }
+      if (notif.link_url) {
+        navigate(notif.link_url);
+      }
+    } catch (err: any) {
+      toast({
+        title: "Navigation Error",
+        description: `Failed to open notification: ${err.message || 'Unknown error'}`,
+        variant: "destructive"
+      });
+    }
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -71,6 +126,8 @@ export function Header() {
   useEffect(() => {
     if (user && user.role !== 'super_admin') {
       fetchHeaderData();
+      const interval = setInterval(fetchHeaderData, 15000); // Poll every 15s
+      return () => clearInterval(interval);
     }
   }, [user]);
 
@@ -84,10 +141,9 @@ export function Header() {
         setSupportInfo(metricsData.supportInfo);
       }
 
-      const indentsData = await requisitionsAPI.getIndents();
-      if (indentsData) {
-        const list = Array.isArray(indentsData) ? indentsData : (indentsData.results || []);
-        setNotifications(list.slice(0, 15));
+      const notifs = await notificationsAPI.getNotifications();
+      if (notifs) {
+        setNotifications(notifs.slice(0, 15));
       }
     } catch (err) {
       console.error('Failed to fetch header data:', err);
@@ -167,9 +223,9 @@ export function Header() {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative">
                   <Bell className="h-5 w-5" />
-                  {notifications.length > 0 && (
+                  {notifications.filter(n => !n.is_read).length > 0 && (
                     <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-xs text-destructive-foreground">
-                      {notifications.length}
+                      {notifications.filter(n => !n.is_read).length}
                     </span>
                   )}
                 </Button>
@@ -179,13 +235,17 @@ export function Header() {
                 <DropdownMenuSeparator className="sticky top-8 z-10" />
                 {notifications.length > 0 ? (
                   notifications.map((notif: any, idx: number) => (
-                    <DropdownMenuItem key={idx} className="flex flex-col items-start gap-1 p-3">
-                      <span className="font-medium">
-                        {notif.status === 'pending' ? 'Requires approval' : 'Indent updated'}
+                    <DropdownMenuItem 
+                      key={idx} 
+                      className={`flex flex-col items-start gap-1 p-3 cursor-pointer ${notif.is_read ? 'opacity-70' : 'bg-slate-50 dark:bg-slate-900/50'}`}
+                      onClick={() => handleNotificationClick(notif)}
+                    >
+                      <span className={`font-medium ${!notif.is_read ? 'text-slate-900 dark:text-slate-100' : ''}`}>
+                        {notif.title}
                       </span>
-                      <span className="text-sm text-muted-foreground">{notif.id} - {notif.category}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {new Date(notif.created_at || Date.now()).toLocaleDateString()}
+                      {notif.message && <span className="text-sm text-muted-foreground">{notif.message}</span>}
+                      <span className="text-xs text-muted-foreground mt-1">
+                        {new Date(notif.created_at || Date.now()).toLocaleString()}
                       </span>
                     </DropdownMenuItem>
                   ))
@@ -222,10 +282,11 @@ export function Header() {
               <span className="text-sm text-muted-foreground">{supportInfo?.contact || '1800-CAMPUS-HELP'}</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <a href={supportInfo?.url || '#'} target="_blank" rel="noreferrer" className="cursor-pointer justify-center text-primary font-medium">
-                View Documentation
-              </a>
+            <DropdownMenuItem 
+              onClick={(e) => { e.preventDefault(); setIsDocsOpen(true); }}
+              className="cursor-pointer justify-center text-primary font-medium"
+            >
+              View Documentation
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -264,6 +325,111 @@ export function Header() {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      {/* Documentation Sheet */}
+      <Sheet open={isDocsOpen} onOpenChange={setIsDocsOpen}>
+        <SheetContent side="right" className="w-[400px] sm:w-[540px] p-0 border-l border-slate-200 dark:border-slate-800">
+          <SheetHeader className="p-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-orange-100 dark:bg-orange-500/20 text-orange-600 rounded-lg">
+                <BookOpen className="h-6 w-6" />
+              </div>
+              <div className="text-left">
+                <SheetTitle className="text-xl font-bold">Documentation Center</SheetTitle>
+                <SheetDescription>
+                  Guides, tutorials, and resources for CampusProcurement.
+                </SheetDescription>
+              </div>
+            </div>
+          </SheetHeader>
+          
+          <ScrollArea className="h-[calc(100vh-120px)] p-6">
+            <div className="space-y-8 pb-10">
+              
+              {/* Getting Started */}
+              {docs.filter(d => d.category === 'quick_start').length > 0 && (
+                <section className="space-y-4">
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
+                    <Lightbulb className="h-4 w-4" /> Quick Start
+                  </h3>
+                  <div className="grid gap-3">
+                    {docs.filter(d => d.category === 'quick_start').map(doc => (
+                      <a 
+                        key={doc.id}
+                        href={doc.url || '#'}
+                        onClick={(e) => handleDocClick(e, doc)}
+                        className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-orange-500/50 hover:bg-orange-50/30 transition-all cursor-pointer group block"
+                      >
+                        <h4 className="font-semibold text-slate-900 dark:text-slate-100 group-hover:text-orange-600 flex items-center gap-2">
+                          <FileText className="h-4 w-4 text-slate-400 group-hover:text-orange-500" /> 
+                          {doc.title}
+                        </h4>
+                        {doc.description && <p className="text-xs text-muted-foreground mt-1 ml-6">{doc.description}</p>}
+                      </a>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {/* Video Tutorials */}
+              {docs.filter(d => d.category === 'video_tutorial').length > 0 && (
+                <section className="space-y-4">
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
+                    <PlayCircle className="h-4 w-4" /> Video Tutorials
+                  </h3>
+                  <div className="grid gap-3">
+                    {docs.filter(d => d.category === 'video_tutorial').map(doc => (
+                      <a
+                        key={doc.id}
+                        href={doc.video_file || doc.url || '#'}
+                        onClick={(e) => handleDocClick(e, doc)}
+                        className="relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-900 aspect-video flex items-center justify-center group cursor-pointer block"
+                      >
+                        <img 
+                          src={doc.thumbnail_url || "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?q=80&w=2070&auto=format&fit=crop"} 
+                          alt={doc.title} 
+                          className="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:opacity-50 transition-opacity" 
+                        />
+                        <PlayCircle className="h-12 w-12 text-white/80 group-hover:text-white group-hover:scale-110 transition-all z-10" />
+                        <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
+                          <p className="text-white font-medium text-sm">{doc.title}</p>
+                        </div>
+                      </a>
+                    ))}
+                  </div>
+                </section>
+              )}
+              
+              {/* Modules */}
+              {docs.filter(d => d.category === 'module_guide').length > 0 && (
+                <section className="space-y-4">
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
+                    <BookOpen className="h-4 w-4" /> Module Guides
+                  </h3>
+                  <div className="space-y-2">
+                    {docs.filter(d => d.category === 'module_guide').map(doc => (
+                      <a 
+                        key={doc.id} 
+                        href={doc.url || '#'}
+                        onClick={(e) => handleDocClick(e, doc)}
+                        className="flex items-center justify-between p-3 rounded-lg border border-transparent hover:border-slate-200 hover:bg-slate-50 dark:hover:border-slate-800 dark:hover:bg-slate-900/50 cursor-pointer text-sm font-medium text-slate-700 dark:text-slate-300 transition-colors block"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="h-2 w-2 rounded-full bg-slate-300 dark:bg-slate-700" />
+                          {doc.title}
+                        </div>
+                        <span className="text-xs text-muted-foreground">View →</span>
+                      </a>
+                    ))}
+                  </div>
+                </section>
+              )}
+              
+            </div>
+          </ScrollArea>
+        </SheetContent>
+      </Sheet>
+
     </header>
   );
 }
