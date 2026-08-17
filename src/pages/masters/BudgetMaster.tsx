@@ -86,7 +86,7 @@ export default function BudgetMaster() {
   const [rows, setRows] = useState<BudgetLine[]>([]);
   const [fy, setFy] = useState('FY 2025-26');
   const [currentPage, setCurrentPage] = useState(1);
-  const PAGE_SIZE = 12;
+  const PAGE_SIZE = 10;
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this budget line?')) return;

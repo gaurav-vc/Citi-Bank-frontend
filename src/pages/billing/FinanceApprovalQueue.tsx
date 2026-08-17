@@ -15,7 +15,7 @@ export default function FinanceApprovalQueue() {
   const [approvals, setApprovals] = useState<any[]>([]);
   const [remarks, setRemarks] = useState<{ [key: string]: string }>({});
   const [currentPage, setCurrentPage] = useState(1);
-  const PAGE_SIZE = 12;
+  const PAGE_SIZE = 10;
 
   useEffect(() => {
     fetchApprovals();

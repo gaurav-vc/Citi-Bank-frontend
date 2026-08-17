@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { downloadFile } from '@/utils/downloadFile';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePermissions } from '@/hooks/usePermissions';
 
 interface Item {
   id: string;
@@ -61,6 +62,7 @@ const mapItem = (i: any): Item => ({
 
 export default function ItemMaster() {
   const { token } = useAuth();
+  const { canCreate, canEdit, canDelete } = usePermissions('procurement:items');
   const [items, setItems] = useState<Item[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
@@ -274,17 +276,19 @@ export default function ItemMaster() {
               <Download className="h-4 w-4 mr-2" />
               Export
             </Button>
-            <Dialog open={isCreateOpen} onOpenChange={(open) => {
-              setIsCreateOpen(open);
-              if (!open) setEditingItem(null);
-            }}>
-              <DialogTrigger asChild>
-                <Button onClick={() => setEditingItem(null)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Item
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl">
+            {canCreate && (
+              <Dialog open={isCreateOpen} onOpenChange={(open) => {
+                setIsCreateOpen(open);
+                if (!open) setEditingItem(null);
+              }}>
+                <DialogTrigger asChild>
+                  <Button onClick={() => setEditingItem(null)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Item
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl">
+
                 <DialogHeader>
                   <DialogTitle>{editingItem ? 'Edit Item/Service' : 'Add New Item/Service'}</DialogTitle>
             <DialogDescription className="text-sm text-muted-foreground">Manage add new item/service details and actions here.</DialogDescription>
@@ -299,6 +303,7 @@ export default function ItemMaster() {
                 />
               </DialogContent>
             </Dialog>
+            )}
           </div>
         </div>
 
@@ -410,7 +415,7 @@ export default function ItemMaster() {
           </div>
 
           <TabsContent value="all">
-            <ItemTable items={allPaginatedData} onEdit={handleEdit} onDelete={handleDelete} />
+            <ItemTable items={allPaginatedData} onEdit={handleEdit} onDelete={handleDelete} canEdit={canEdit} canDelete={canDelete} />
             <DataTablePagination
               currentPage={allCurrentPage}
               totalPages={allTotalPages}
@@ -420,7 +425,7 @@ export default function ItemMaster() {
             />
           </TabsContent>
           <TabsContent value="spares">
-            <ItemTable items={sparesPaginatedData} onEdit={handleEdit} onDelete={handleDelete} />
+            <ItemTable items={sparesPaginatedData} onEdit={handleEdit} onDelete={handleDelete} canEdit={canEdit} canDelete={canDelete} />
             <DataTablePagination
               currentPage={sparesCurrentPage}
               totalPages={sparesTotalPages}
@@ -430,7 +435,7 @@ export default function ItemMaster() {
             />
           </TabsContent>
           <TabsContent value="consumables">
-            <ItemTable items={consumablesPaginatedData} onEdit={handleEdit} onDelete={handleDelete} />
+            <ItemTable items={consumablesPaginatedData} onEdit={handleEdit} onDelete={handleDelete} canEdit={canEdit} canDelete={canDelete} />
             <DataTablePagination
               currentPage={consumablesCurrentPage}
               totalPages={consumablesTotalPages}
@@ -440,7 +445,7 @@ export default function ItemMaster() {
             />
           </TabsContent>
           <TabsContent value="services">
-            <ItemTable items={servicesPaginatedData} onEdit={handleEdit} onDelete={handleDelete} />
+            <ItemTable items={servicesPaginatedData} onEdit={handleEdit} onDelete={handleDelete} canEdit={canEdit} canDelete={canDelete} />
             <DataTablePagination
               currentPage={servicesCurrentPage}
               totalPages={servicesTotalPages}
@@ -450,7 +455,7 @@ export default function ItemMaster() {
             />
           </TabsContent>
           <TabsContent value="low-stock">
-            <ItemTable items={lowStockPaginatedData} onEdit={handleEdit} onDelete={handleDelete} />
+            <ItemTable items={lowStockPaginatedData} onEdit={handleEdit} onDelete={handleDelete} canEdit={canEdit} canDelete={canDelete} />
             <DataTablePagination
               currentPage={lowStockCurrentPage}
               totalPages={lowStockTotalPages}
@@ -465,7 +470,7 @@ export default function ItemMaster() {
   );
 }
 
-function ItemTable({ items, onEdit, onDelete }: { items: Item[]; onEdit: (item: Item) => void; onDelete: (id: string) => void }) {
+function ItemTable({ items, onEdit, onDelete, canEdit, canDelete }: { items: Item[]; onEdit: (item: Item) => void; onDelete: (id: string) => void; canEdit: boolean; canDelete: boolean }) {
   return (
     <Card>
       <CardContent className="p-0">
@@ -530,12 +535,16 @@ function ItemTable({ items, onEdit, onDelete }: { items: Item[]; onEdit: (item: 
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="sm" onClick={() => onEdit(item)}>
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm" className="text-destructive" onClick={() => onDelete(item.id)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {canEdit && (
+                          <Button variant="ghost" size="sm" onClick={() => onEdit(item)}>
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {canDelete && (
+                          <Button variant="ghost" size="sm" className="text-destructive" onClick={() => onDelete(item.id)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>

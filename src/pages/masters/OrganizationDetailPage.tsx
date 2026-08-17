@@ -42,7 +42,7 @@ export default function OrganizationDetailPage() {
   const [subdomainMessage, setSubdomainMessage] = useState("");
   const [contactHint, setContactHint] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const PAGE_SIZE = 12;
+  const PAGE_SIZE = 10;
 
   const { data: org, isLoading: isLoadingOrg } = useQuery({
     queryKey: ["organization", orgId],

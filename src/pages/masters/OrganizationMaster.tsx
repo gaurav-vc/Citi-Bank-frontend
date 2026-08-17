@@ -222,7 +222,7 @@ export default function OrganizationMaster() {
   const [cityFilter, setCityFilter] = useState('all');
   const [zoneFilter, setZoneFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
-  const PAGE_SIZE = 12;
+  const PAGE_SIZE = 10;
 
   // Form states
   const [formOrgName, setFormOrgName] = useState('Acme Corporation');

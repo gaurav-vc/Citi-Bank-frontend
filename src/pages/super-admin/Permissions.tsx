@@ -22,12 +22,21 @@ interface ModuleSection {
 
 const MODULE_ACCESS_SECTIONS: ModuleSection[] = [
   {
+    id: "dashboard",
+    title: "Dashboard",
+    items: [
+      { key: "reports:dashboard", label: "Overview", starred: true }
+    ]
+  },
+  {
     id: "procurement",
     title: "Procurement",
     items: [
       { key: "procurement:indents", label: "Indents", starred: true },
       { key: "procurement:rfqs", label: "RFQs" },
-      { key: "procurement:rfqs_compare", label: "Quotation Comparison" },
+      { key: "procurement:rfqs_comparison", label: "Quotation Comparison" },
+      { key: "procurement:rfqs_vendor", label: "Tendering & Bidding" },
+      { key: "procurement:rfqs_quote", label: "Submit Quotation" },
       { key: "procurement:orders", label: "Purchase Orders" },
       { key: "procurement:vendors", label: "Vendors" },
       { key: "procurement:approvals", label: "Approvals" }
@@ -38,11 +47,13 @@ const MODULE_ACCESS_SECTIONS: ModuleSection[] = [
     title: "Inventory",
     items: [
       { key: "procurement:items", label: "Item Master" },
+      { key: "procurement:inventory_master", label: "Inventory Settings" },
       { key: "procurement:inventory", label: "Stock Ledger", starred: true },
+      { key: "procurement:inspections", label: "Quality Inspection" },
       { key: "procurement:grn", label: "GRN Entry" },
-      { key: "procurement:issue_to_site", label: "Issue To Site (GDN)" },
+      { key: "procurement:inventory_issue", label: "Issue To Site (GDN)" },
       { key: "procurement:inventory_transfer", label: "Stock Transfer" },
-      { key: "procurement:inventory_scrap", label: "Scrap Disposal" },
+      { key: "procurement:inventory_disposal", label: "Scrap Disposal" },
       { key: "procurement:inventory_rtv", label: "Return To Vendor" }
     ]
   },
@@ -50,7 +61,7 @@ const MODULE_ACCESS_SECTIONS: ModuleSection[] = [
     id: "qc_execution",
     title: "QC & Execution",
     items: [
-      { key: "procurement:qc", label: "Quality Inspection", starred: true }
+      { key: "procurement:qc_checklists", label: "Quality Inspection", starred: true }
     ]
   },
   {
@@ -59,9 +70,8 @@ const MODULE_ACCESS_SECTIONS: ModuleSection[] = [
     items: [
       { key: "procurement:billing", label: "Invoices", starred: true },
       { key: "procurement:billing_approvals", label: "Finance Approvals" },
-      { key: "procurement:payments_proposals", label: "Payment Proposals" },
+      { key: "procurement:payment_proposals", label: "Payment Proposals" },
       { key: "procurement:payments", label: "Payments" },
-      { key: "procurement:payments_utr", label: "UTR Management" },
       { key: "procurement:budgets", label: "Budgets" }
     ]
   },
@@ -69,12 +79,22 @@ const MODULE_ACCESS_SECTIONS: ModuleSection[] = [
     id: "reports_analytics",
     title: "Reports & Analytics",
     items: [
-      { key: "core:dashboard", label: "Dashboard", starred: true },
-      { key: "procurement:reports_spend", label: "Spend Analytics" },
-      { key: "procurement:reports_inventory", label: "Inventory Reports" },
-      { key: "procurement:reports_invoice", label: "Invoice Reports" },
-      { key: "procurement:reports_audit", label: "Audit Reports" },
-      { key: "procurement:ai", label: "AI Recommendations" }
+      { key: "reports:reports", label: "Spend Analytics" },
+      { key: "reports:inventory_reports", label: "Inventory Reports" },
+      { key: "reports:invoice_reports", label: "Invoice Reports" },
+      { key: "reports:audit_reports", label: "Audit Reports" },
+      { key: "reports:ai", label: "AI Recommendations" }
+    ]
+  },
+  {
+    id: "setup_admin",
+    title: "Setup & Administration",
+    items: [
+      { key: "core:users", label: "Users & Roles" },
+      { key: "core:settings", label: "Role Permissions" },
+      { key: "core:workflows", label: "Approval Workflows" },
+      { key: "core:departments", label: "Departments" },
+      { key: "core:documentation", label: "System Config" }
     ]
   }
 ];

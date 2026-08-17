@@ -17,11 +17,12 @@ export default function DepartmentPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [siteIdFilter, setSiteIdFilter] = useState("all");
+  const [orgIdFilter, setOrgIdFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const PAGE_SIZE = 12;
+  const PAGE_SIZE = 10;
 
   // Form states
   const [name, setName] = useState("");
@@ -69,6 +70,10 @@ export default function DepartmentPage() {
 
   const filteredRows = useMemo(() => {
     return departments.filter((row: any) => {
+      if (orgIdFilter !== "all") {
+        const rowSite = sites.find((s: any) => s.id === row.site);
+        if (rowSite && rowSite.organization !== Number(orgIdFilter)) return false;
+      }
       if (siteIdFilter !== "all" && row.site !== Number(siteIdFilter)) return false;
       const q = search.trim().toLowerCase();
       if (!q) return true;
@@ -184,7 +189,9 @@ export default function DepartmentPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Departments</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+            {user?.role === "super_admin" ? "Global Departments" : "Departments"}
+          </h1>
           <p className="text-sm text-muted-foreground mt-1">
             Manage your organization's departments, budget limits, and approval routing.
           </p>
@@ -201,7 +208,7 @@ export default function DepartmentPage() {
       </div>
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-4">
           <div className="relative w-full sm:w-72">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
             <Input
@@ -211,18 +218,45 @@ export default function DepartmentPage() {
               className="pl-10 h-10 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm rounded-xl text-sm"
             />
           </div>
-          <div className="relative">
-            <select
-              value={siteIdFilter}
-              onChange={(e) => setSiteIdFilter(e.target.value)}
-              className="h-10 px-4 pr-10 appearance-none bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          {user?.role === "super_admin" && (
+            <>
+              <div className="relative">
+                <select
+                  value={orgIdFilter}
+                  onChange={(e) => { setOrgIdFilter(e.target.value); setSiteIdFilter("all"); }}
+                  className="h-10 px-4 pr-10 appearance-none bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="all">All Organizations</option>
+                  {orgs.map((org: any) => (
+                    <option key={org.id} value={org.id}>{org.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="relative">
+                <select
+                  value={siteIdFilter}
+                  onChange={(e) => setSiteIdFilter(e.target.value)}
+                  className="h-10 px-4 pr-10 appearance-none bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="all">All Sites</option>
+                  {sites
+                    .filter((s: any) => orgIdFilter === "all" || s.organization === Number(orgIdFilter))
+                    .map((site: any) => (
+                      <option key={site.id} value={site.id}>{site.name}</option>
+                  ))}
+                </select>
+              </div>
+            </>
+          )}
+          {(orgIdFilter !== "all" || siteIdFilter !== "all" || search !== "") && (
+            <Button 
+              variant="ghost" 
+              onClick={() => { setOrgIdFilter("all"); setSiteIdFilter("all"); setSearch(""); setCurrentPage(1); }}
+              className="h-10 text-slate-500 hover:text-slate-800 dark:hover:text-slate-300 text-sm font-medium px-4"
             >
-              <option value="all">All Sites</option>
-              {sites.map((site: any) => (
-                <option key={site.id} value={site.id}>{site.name}</option>
-              ))}
-            </select>
-          </div>
+              Clear Filters
+            </Button>
+          )}
         </div>
       </div>
 
@@ -378,21 +412,22 @@ export default function DepartmentPage() {
                       </select>
                     </div>
                   )}
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Assign to Site <span className="text-red-500">*</span></Label>
-                    <select 
-                      value={siteId} 
-                      onChange={e => setSiteId(e.target.value)}
-                      required
-                      disabled={user?.role !== "super_admin" && filteredSites.length === 1}
-                      className="w-full h-10 px-3 rounded-md bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60"
-                    >
-                      <option value="">Select a Site</option>
-                      {filteredSites.map((s: any) => (
-                        <option key={s.id} value={s.id}>{s.name}</option>
-                      ))}
-                    </select>
-                  </div>
+                  {user?.role === "super_admin" && (
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Assign to Site <span className="text-red-500">*</span></Label>
+                      <select 
+                        value={siteId} 
+                        onChange={e => setSiteId(e.target.value)}
+                        required
+                        className="w-full h-10 px-3 rounded-md bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="">Select a Site</option>
+                        {filteredSites.map((s: any) => (
+                          <option key={s.id} value={s.id}>{s.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                   <div className="space-y-1.5 md:col-span-2">
                     <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Description</Label>
                     <textarea 

@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { downloadFile } from '@/utils/downloadFile';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useWorkflow } from '@/hooks/useWorkflow';
 import { RoleLabels, UserRole } from '@/types';
 import { ApprovalTimeline } from '@/components/workflow/ApprovalTimeline';
@@ -134,6 +135,7 @@ const getReviewTitle = (rfq: RFQ, currentUserRole?: string) => {
 
 export default function TenderingRFQ() {
   const { token, user } = useAuth();
+  const { canCreate } = usePermissions('procurement:rfqs');
   const [searchParams, setSearchParams] = useSearchParams();
   const convertIndentId = searchParams.get('convert_indent');
   const [rfqs, setRFQs] = useState<RFQ[]>([]);
@@ -142,7 +144,7 @@ export default function TenderingRFQ() {
   const [categoryFilter, setCategoryFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
-  const PAGE_SIZE = 12;
+  const PAGE_SIZE = 10;
   const [selectedRFQ, setSelectedRFQ] = useState<RFQ | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const { id } = useParams<{ id: string }>();
@@ -367,7 +369,7 @@ export default function TenderingRFQ() {
               <Download className="h-4 w-4 mr-2" />
               Export
             </Button>
-            {['procurement_executive', 'procurement_manager', 'super_admin'].includes(user?.role || '') && (
+            {canCreate && (
               <Dialog open={isCreateOpen} onOpenChange={(open) => {
                 setIsCreateOpen(open);
                 if (!open) {
@@ -554,7 +556,7 @@ export default function TenderingRFQ() {
 
 function RFQTable({ rfqs, onSelectRFQ, isAwardedTable }: { rfqs: RFQ[]; onSelectRFQ: (rfq: RFQ) => void; isAwardedTable?: boolean }) {
   const [currentPage, setCurrentPage] = useState(1);
-  const PAGE_SIZE = 12;
+  const PAGE_SIZE = 10;
   const filteredRFQs = rfqs;
   const paginatedRFQs = filteredRFQs.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 

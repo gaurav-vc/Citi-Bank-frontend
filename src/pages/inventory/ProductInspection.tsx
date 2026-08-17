@@ -134,7 +134,7 @@ export default function ProductInspection() {
 
 function InspectionTable({ inspections, onProcess }: { inspections: Inspection[], onProcess?: (ins: Inspection) => void }) {
   const [currentPage, setCurrentPage] = useState(1);
-  const PAGE_SIZE = 12;
+  const PAGE_SIZE = 10;
 
   // Reset page when switching tabs
   useEffect(() => {

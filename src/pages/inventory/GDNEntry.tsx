@@ -19,7 +19,7 @@ export default function GDNEntry() {
   const [destination, setDestination] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const PAGE_SIZE = 12;
+  const PAGE_SIZE = 10;
 
   useEffect(() => {
     fetchGdns();

@@ -76,7 +76,7 @@ export default function ScrapDisposal() {
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<ScrapItem | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const PAGE_SIZE = 12;
+  const PAGE_SIZE = 10;
 
   useEffect(() => {
     fetchScrap();

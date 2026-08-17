@@ -71,7 +71,7 @@ export default function EnterpriseHierarchy() {
   const [isAssignOpen, setIsAssignOpen] = useState(false);
   const [usersPage, setUsersPage] = useState(1);
   const [permissionsPage, setPermissionsPage] = useState(1);
-  const PAGE_SIZE = 12;
+  const PAGE_SIZE = 10;
 
   // Forms State
   const [newOrg, setNewOrg] = useState({

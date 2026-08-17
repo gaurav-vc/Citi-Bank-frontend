@@ -5,6 +5,7 @@ import { commonAPI } from '@/api/common';
 import { ordersAPI } from '@/api/orders';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePermissions } from '@/hooks/usePermissions';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -55,6 +56,7 @@ const defaultBudgetHeads = [{ value: 'opex', label: 'OPEX (Operational)' }, { va
 
 export default function CreateIndent() {
   const { user } = useAuth();
+  const { canCreate } = usePermissions('procurement:indents');
   const location = useLocation();
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
@@ -108,7 +110,7 @@ export default function CreateIndent() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
-  const PAGE_SIZE = 12;
+  const PAGE_SIZE = 10;
   const [selectedIndentDetail, setSelectedIndentDetail] = useState<any | null>(null);
   const [purchaseOrders, setPurchaseOrders] = useState<any[]>([]);
   const [rfqsList, setRfqsList] = useState<any[]>([]);
@@ -507,7 +509,7 @@ export default function CreateIndent() {
                     : 'Track and manage your submitted indents and MOR requests'}
               </p>
             </div>
-            {['site_keeper', 'site_manager', 'site_engineer', 'super_admin'].includes(user?.role || '') && (
+            {canCreate && (
               <Button onClick={() => navigate('/requisitions/create')}>
                 <Plus className="h-4 w-4 mr-2" />
                 Create Request

@@ -60,7 +60,7 @@ export default function VendorMaster() {
   const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
   const [editingVendor, setEditingVendor] = useState<any | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const PAGE_SIZE = 12;
+  const PAGE_SIZE = 10;
 
   const dynamicCategories = Array.from(new Set(vendors.map(v => v.category).filter(Boolean)));
 

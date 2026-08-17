@@ -40,19 +40,21 @@ import { Invoice } from '@/types';
 import { toast } from '@/hooks/use-toast';
 import { downloadFile } from '@/utils/downloadFile';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePermissions } from '@/hooks/usePermissions';
 import { WorkflowContainer } from '@/components/workflow/WorkflowContainer';
 import { useParams, useNavigate } from 'react-router-dom';
 import { DataTablePagination } from "@/components/ui/data-table-pagination";
 
 export default function BillingInvoices() {
   const { token, user } = useAuth();
+  const { canCreate, canApprove } = usePermissions('procurement:billing');
   const [invoices, setInvoices] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const PAGE_SIZE = 12;
+  const PAGE_SIZE = 10;
 
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
@@ -296,7 +298,7 @@ export default function BillingInvoices() {
               <Download className="h-4 w-4 mr-2" />
               Export
             </Button>
-            {user && user.role !== 'finance_manager' && (
+            {canCreate && user && user.role !== 'finance_manager' && (
               <Button onClick={() => document.getElementById('invoice-import-input')?.click()}>
                 <Upload className="h-4 w-4 mr-2" />
                 Upload Invoice

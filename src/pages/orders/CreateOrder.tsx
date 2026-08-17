@@ -54,7 +54,7 @@ export default function CreateOrder() {
     { id: '1', itemName: '', description: '', quantity: 1, uom: 'Nos', rate: 0, amount: 0, deliveredQty: 0, balanceQty: 1 }
   ]);
   const [currentPage, setCurrentPage] = useState(1);
-  const PAGE_SIZE = 12;
+  const PAGE_SIZE = 10;
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {

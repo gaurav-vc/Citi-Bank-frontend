@@ -35,7 +35,7 @@ export default function InventoryMaster() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [filterType, setFilterType] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
-  const PAGE_SIZE = 12;
+  const PAGE_SIZE = 10;
 
   useEffect(() => {
     fetchFields();

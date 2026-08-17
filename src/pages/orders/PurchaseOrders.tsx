@@ -37,6 +37,7 @@ import {
 import { PurchaseOrder } from '@/types';
 import { downloadFile } from '@/utils/downloadFile';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePermissions } from '@/hooks/usePermissions';
 import { WorkflowContainer } from '@/components/workflow/WorkflowContainer';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -70,6 +71,7 @@ export default function PurchaseOrders() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const { token, user } = useAuth();
+  const { canCreate, canEdit, canDelete } = usePermissions('procurement:orders');
   const [purchaseOrders, setPurchaseOrders] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -247,7 +249,7 @@ export default function PurchaseOrders() {
   const [dateRange, setDateRange] = useState<any>();
   const [vendorFilter, setVendorFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
-  const PAGE_SIZE = 12;
+  const PAGE_SIZE = 10;
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedPO, setSelectedPO] = useState<PurchaseOrder | null>(null);
 
@@ -311,7 +313,7 @@ export default function PurchaseOrders() {
               <Download className="h-4 w-4 mr-2" />
               Export
             </Button>
-            {user && (user.role === 'procurement_manager' || user.role === 'procurement_executive' || user.role === 'super_admin' || ['cxo', 'cxo_citi', 'cxo_emb'].includes(user.role)) && (
+            {canCreate && (
               <Button onClick={() => navigate('/orders/create')}>
                 Create PO
               </Button>
@@ -494,7 +496,7 @@ export default function PurchaseOrders() {
                                     <Eye className="h-4 w-4 mr-2" />
                                     View Details
                                   </DropdownMenuItem>
-                                  {po.status === 'draft' && user && (user.role === 'super_admin' || ['cxo', 'cxo_citi', 'cxo_emb'].includes(user.role) || user.role === 'procurement_manager' || user.role === 'procurement_executive') && (
+                                  {po.status === 'draft' && canEdit && (
                                     <DropdownMenuItem onClick={() => navigate(`/orders/edit/${po.id}`)}>
                                       <Eye className="h-4 w-4 mr-2 text-amber-500" />
                                       Edit Draft
@@ -518,7 +520,7 @@ export default function PurchaseOrders() {
                                       Close PO
                                     </DropdownMenuItem>
                                   )}
-                                  {(po.status === 'draft' || po.status === 'rejected') && user && (user.role === 'super_admin' || ['cxo', 'cxo_citi', 'cxo_emb'].includes(user.role) || user.role === 'procurement_manager' || user.role === 'procurement_executive') && (
+                                  {(po.status === 'draft' || po.status === 'rejected') && canDelete && (
                                     <DropdownMenuItem onClick={() => handleDeletePO(po)}>
                                       <Trash2 className="h-4 w-4 mr-2 text-red-500" />
                                       Delete PO

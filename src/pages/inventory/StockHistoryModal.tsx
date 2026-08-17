@@ -33,7 +33,7 @@ export function StockHistoryModal({ isOpen, onClose, itemId, itemName }: StockHi
   const [currentStock, setCurrentStock] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const PAGE_SIZE = 12;
+  const PAGE_SIZE = 10;
 
   useEffect(() => {
     if (isOpen && itemId) {

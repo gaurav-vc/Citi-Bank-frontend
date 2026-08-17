@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { downloadFile } from '@/utils/downloadFile';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePermissions } from '@/hooks/usePermissions';
 import { DataTablePagination } from "@/components/ui/data-table-pagination";
 import { useParams, useNavigate } from 'react-router-dom';
 import { inventoryAPI } from '@/api/inventory';
@@ -82,6 +83,7 @@ export default function GRNEntry() {
   const [invoiceDate, setInvoiceDate] = useState('');
   const [selectedPO, setSelectedPO] = useState<any | null>(null);
   const { user } = useAuth();
+  const { canCreate } = usePermissions('procurement:grn');
 
   useEffect(() => {
     fetchGrns();
@@ -246,6 +248,7 @@ export default function GRNEntry() {
             <p className="text-muted-foreground">Goods Receipt Note management and quality control</p>
           </div>
           <div className="flex gap-2">
+            {canCreate && (
               <Dialog open={isCreateGrnOpen} onOpenChange={(open) => {
               setIsCreateGrnOpen(open);
               if (open) fetchApprovedPOs();
@@ -325,6 +328,7 @@ export default function GRNEntry() {
                 </div>
               </DialogContent>
             </Dialog>
+            )}
 
             <Button variant="outline" onClick={handleExport}>
               <Download className="h-4 w-4 mr-2" />
@@ -451,7 +455,7 @@ function GRNTable({ grns, onActionComplete, onViewDetails }: { grns: GRN[], onAc
   const [inventoryDecision, setInventoryDecision] = useState<'surplus' | 'site'>('surplus');
   const [partialItems, setPartialItems] = useState<Array<{itemId: string, itemName?: string, acceptedQty: number, rejectedQty: number}>>([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const PAGE_SIZE = 12;
+  const PAGE_SIZE = 10;
 
   useEffect(() => {
     setCurrentPage(1);

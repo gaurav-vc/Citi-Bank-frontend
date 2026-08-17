@@ -70,7 +70,7 @@ export default function IssueToSite() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const PAGE_SIZE = 12;
+  const PAGE_SIZE = 10;
 
   useEffect(() => {
     fetchIssues();

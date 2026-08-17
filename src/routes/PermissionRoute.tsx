@@ -53,20 +53,10 @@ export function PermissionRoute({
     return <Navigate to="/login" replace />;
   }
 
-  // Bypass all checks for super_admin
+  // Bypass all checks for super_admin (they see everything they click on, but their sidebar is restricted)
   if (user.role === 'super_admin') {
     return <>{children}</>;
   }
-
-  const effectiveRole = (user.role === 'cxo_citi' || user.role === 'cxo_emb') ? 'cxo' : user.role;
-
-  // Explicitly restrict Budget Planning from non-permitted roles
-  if (permissionKey === 'procurement:budgets' && !['super_admin', 'finance_executive', 'finance_manager', 'facility_manager', 'project_head', 'cxo'].includes(effectiveRole)) {
-    return renderError("User role not in hardcoded allowed list for procurement:budgets");
-  }
-
-  const keys = user.permissions ? Object.keys(user.permissions) : [];
-  const hasDbPermissions = keys.length > 1 || (keys.length === 1 && keys[0] !== 'core:dashboard');
 
   // Always allow admin/client_admin to access Setup pages (Users & Roles, Role Permissions)
   // These are management pages not tied to module-level DB permissions
@@ -75,21 +65,31 @@ export function PermissionRoute({
     return <>{children}</>;
   }
 
-  // DB-FIRST: When user has permissions from the database, use ONLY those
-  if (hasDbPermissions && permissionKey) {
+  // Explicitly block Organizations and Sites for non-admin roles, even if DB says otherwise
+  if (permissionKey === 'core:organizations' || permissionKey === 'core:sites') {
+    if (!['super_admin', 'client_admin', 'admin'].includes(user.role)) {
+      return renderError(`Access denied. You do not have the required role to access Setup & Administration pages.`);
+    }
+  }
+
+  // DB-FIRST: When permissionKey is provided, use ONLY DB permissions
+  if (permissionKey) {
     // Dashboard always accessible
     if (permissionKey === 'core:dashboard') return <>{children}</>;
-    const userFeaturePerms = user.permissions![permissionKey];
-    if (userFeaturePerms && userFeaturePerms[action] === true) {
-      return <>{children}</>;
+    
+    if (user.permissions) {
+      const userFeaturePerms = user.permissions[permissionKey];
+      if (userFeaturePerms && userFeaturePerms[action] === true) {
+        return <>{children}</>;
+      }
     }
     // Permission key exists in DB but access denied, OR key not in permissions at all
     return renderError(`Database permissions check failed. Feature permissions for '${permissionKey}' are missing or action '${action}' is false.`);
   }
 
-  // ROLE FALLBACK: User has no DB permissions — fall back to static role list
-  if (!roles.includes(effectiveRole as UserRole)) {
-    return renderError(`Role fallback check failed. Effective role '${effectiveRole}' is not in the required roles list.`);
+  // ROLE FALLBACK: If NO permissionKey is provided, it means this route relies on the 'roles' array (e.g. super-admin only routes without permission keys)
+  if (roles && !roles.includes(user.role as UserRole)) {
+    return renderError(`Access denied. You do not have the required role to access this page.`);
   }
 
   return <>{children}</>;

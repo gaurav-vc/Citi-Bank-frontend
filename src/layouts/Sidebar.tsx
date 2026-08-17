@@ -306,33 +306,24 @@ export function Sidebar() {
     // 1. super_admin only sees Super Admin specific menus
     if (user.role === 'super_admin') return key.startsWith('superadmin:');
 
-    // Always allow Setup items for admin/client_admin regardless of DB permissions
-    if (key === 'core:users' || key === 'core:settings' || key === 'core:documentation') {
-      if (user.role === 'admin' || user.role === 'client_admin') return true;
-    }
-    if (key === 'core:sites' || key === 'core:departments' || key === 'core:roles') {
-      if (user.role === 'client_admin') return true;
-      return false;
-    }
-    if (key === 'core:organizations') return false;
-
-    // Explicitly restrict internal RFQ and Inventory views from vendors
-    if (user.role === 'vendor') {
-      const vendorRestricted = [
-        'procurement:rfqs', 'procurement:rfqs_active', 'procurement:rfqs_comparison',
-        'procurement:items', 'procurement:inventory', 'procurement:grn', 
-        'procurement:inventory_issue', 'procurement:inventory_transfer', 
-        'procurement:inventory_disposal', 'procurement:inventory_rtv',
-        'procurement:inventory_gdn', 'procurement:qc_checklists'
-      ];
-      if (vendorRestricted.includes(key)) return false;
-    }
+    // The DB injects 'core:dashboard' which creates a duplicate in the 'Setup' menu.
+    // The real top-level dashboard uses the key 'reports:dashboard'.
+    if (key === 'core:dashboard') return false;
 
     let checkKey = key;
+    
+    // Explicitly block Organizations and Sites for non-admin roles, even if DB says otherwise
+    if (key === 'core:organizations' || key === 'core:sites') {
+      if (!['super_admin', 'client_admin', 'admin'].includes(user.role)) return false;
+    }
+
+    // Always allow admin/client_admin to access Setup pages (Users & Roles, Role Permissions) in the sidebar
+    if (key === 'core:users' || key === 'core:settings' || key === 'core:documentation' || key === 'core:setup') {
+      if (user.role === 'admin' || user.role === 'client_admin') return true;
+    }
+
     // Alias mappings for sidebar keys that map to permission keys
     if (key === 'core:setup') checkKey = 'core:users';
-    if (key === 'core:roles') checkKey = 'core:users';
-    if (key === 'core:settings' || key === 'core:documentation') checkKey = 'core:users';
     if (key === 'procurement:approvals') checkKey = 'procurement:indents';
     if (key === 'procurement:workflows') checkKey = 'procurement:indents';
     if (key === 'procurement:inventory_master') checkKey = 'procurement:items';
@@ -344,114 +335,17 @@ export function Sidebar() {
     if (key === 'procurement:billing_approvals') checkKey = 'procurement:billing';
     if (key === 'reports:dashboard') checkKey = 'core:dashboard';
 
-    // 2. If user has DB permissions configured (more than just the default dashboard) — use ONLY those
+    // 2. Use ONLY DB permissions configured for this user
     if (user.permissions && Object.keys(user.permissions).length > 0) {
-      const keys = Object.keys(user.permissions);
-      // If the ONLY permission is core:dashboard (injected by backend default), fallback to matrix
-      if (!(keys.length === 1 && keys[0] === 'core:dashboard')) {
-        if (checkKey === 'core:dashboard') return true;
-        const perms = user.permissions[checkKey];
-        if (perms !== undefined && perms !== null) {
-          return perms.view === true;
-        }
-        return false;
+      if (checkKey === 'core:dashboard') return true;
+      const perms = user.permissions[checkKey];
+      if (perms !== undefined && perms !== null) {
+        return perms.view === true;
       }
     }
 
-    // 3. Fallback role matrix based on the standardized matrix
-    const role = user.role;
-
-    if (role === 'admin') {
-      return ['core:dashboard', 'core:setup', 'core:users', 'core:settings'].includes(key);
-    }
-
-    if (role === 'client_admin') {
-      return ['core:dashboard', 'core:setup', 'core:users', 'core:sites', 'core:departments', 'core:roles'].includes(key);
-    }
-
-    if (role === 'site_keeper') {
-      return ['core:dashboard', 'procurement:indents_create', 'procurement:indents_my', 'procurement:indents', 'procurement:inspections', 'procurement:grn'].includes(key);
-    }
-
-    if (role === 'store_keeper') {
-      return [
-        'core:dashboard', 'procurement:approvals', 'procurement:indents',
-        'procurement:inventory', 'procurement:inventory_master', 'procurement:inventory_view', 'procurement:inventory_issue', 'procurement:inventory_transfer', 'procurement:inventory_disposal', 'procurement:inspections', 'procurement:grn', 'procurement:items',
-        'procurement:qc', 'procurement:qc_checklists'
-      ].includes(key);
-    }
-
-    if (role === 'site_manager') {
-      return [
-        'core:dashboard', 'procurement:indents_create', 'procurement:indents_my', 'procurement:approvals', 'procurement:indents',
-        'procurement:inventory', 'procurement:inventory_master', 'procurement:inventory_view', 'procurement:inventory_issue', 'procurement:inventory_transfer', 'procurement:inventory_disposal', 'procurement:items',
-        'procurement:inspections', 'procurement:grn', 'procurement:qc', 'procurement:qc_checklists'
-      ].includes(key);
-    }
-
-    if (role === 'procurement_executive') {
-      return [
-        'core:dashboard', 'procurement:indents', 'procurement:rfqs', 'procurement:rfqs_active', 'procurement:rfqs_comparison',
-        'procurement:vendors', 'procurement:contracts', 'procurement:orders', 'procurement:items'
-      ].includes(key);
-    }
-
-    if (role === 'procurement_manager') {
-      return [
-        'core:dashboard', 'procurement:indents', 'procurement:approvals',
-        'procurement:rfqs', 'procurement:rfqs_active', 'procurement:rfqs_comparison',
-        'procurement:vendors', 'procurement:contracts', 'procurement:orders', 'procurement:items',
-        'procurement:inventory_master',
-        'procurement:reports', 'procurement:ai'
-      ].includes(key);
-    }
-
-    if (role === 'facility_manager') {
-      return [
-        'core:dashboard', 'procurement:indents', 'procurement:approvals',
-        'procurement:rfqs', 'procurement:rfqs_active', 'procurement:rfqs_comparison',
-        'procurement:vendors', 'procurement:contracts', 'procurement:orders', 'procurement:items',
-        'procurement:inventory_master',
-        'procurement:budgets', 'procurement:reports', 'procurement:ai'
-      ].includes(key);
-    }
-
-    if (role === 'finance_executive') {
-      return [
-        'core:dashboard', 'procurement:approvals', 'procurement:indents', 'procurement:orders',
-        'procurement:budgets', 'procurement:billing', 'procurement:payments', 'procurement:expenses'
-      ].includes(key);
-    }
-
-    if (role === 'finance_manager') {
-      return [
-        'core:dashboard', 'procurement:approvals', 'procurement:indents', 'procurement:orders',
-        'procurement:budgets', 'procurement:billing', 'procurement:payments', 'procurement:expenses',
-        'procurement:reports', 'procurement:ai'
-      ].includes(key);
-    }
-
-    if (role === 'project_head') {
-      return [
-        'core:dashboard', 'procurement:approvals', 'procurement:indents',
-        'procurement:rfqs', 'procurement:rfqs_active', 'procurement:rfqs_comparison',
-        'procurement:orders', 'procurement:budgets', 'procurement:inventory', 'procurement:inventory_view', 'procurement:inventory_issue', 'procurement:inventory_transfer', 'procurement:inventory_disposal',
-        'procurement:vendors', 'procurement:billing', 'procurement:payments',
-        'procurement:reports', 'procurement:ai'
-      ].includes(key);
-    }
-
-    if (role === 'cxo' || role === 'cxo_citi' || role === 'cxo_emb') {
-      return !key.startsWith('superadmin:');
-    }
-
-    if (role === 'vendor') {
-      return [
-        'core:dashboard', 'procurement:rfqs_vendor', 'procurement:rfqs_quote', 'procurement:expenses'
-      ].includes(key);
-    }
-
-    return key === 'core:dashboard';
+    // Default to denying access if not mapped
+    return checkKey === 'core:dashboard';
   };
 
   // Determine path dynamically based on role
@@ -508,9 +402,16 @@ export function Sidebar() {
     if (modules.length === 0) return merged;
     
     modules.forEach(dbMod => {
-      const existing = merged.find(m => m.title.toLowerCase() === dbMod.title.toLowerCase());
+      let titleToMatch = dbMod.title;
+      if (titleToMatch.toLowerCase() === 'core features') {
+        titleToMatch = 'Setup';
+      } else if (titleToMatch.toLowerCase() === 'quality inspection') {
+        titleToMatch = 'QC & Execution';
+      }
+
+      const existing = merged.find(m => m.title.toLowerCase() === titleToMatch.toLowerCase());
       if (!existing) {
-        merged.push(dbMod);
+        merged.push({ ...dbMod, title: titleToMatch });
       } else {
         dbMod.items.forEach(dbItem => {
           const hasItem = existing.items.some(i => i.key === dbItem.key);

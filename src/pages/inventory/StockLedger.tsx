@@ -36,7 +36,7 @@ export default function StockLedger() {
   const [selectedItemName, setSelectedItemName] = useState<string | null>(null);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const PAGE_SIZE = 12;
+  const PAGE_SIZE = 10;
 
   const handleOpenHistory = (itemId: string, itemName: string) => {
     setSelectedItemId(itemId);

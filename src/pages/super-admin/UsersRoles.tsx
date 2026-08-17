@@ -38,7 +38,7 @@ export default function SuperAdminUsersRoles() {
   const [tab, setTab] = useState<"roles" | "users" | "permissions" | "pending">("roles");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const PAGE_SIZE = 12;
+  const PAGE_SIZE = 10;
 
   const [selectedOrgId, setSelectedOrgId] = useState<string>("");
   const [selectedSiteId, setSelectedSiteId] = useState<string>("");
@@ -632,11 +632,11 @@ export default function SuperAdminUsersRoles() {
                 <table className="w-full border-collapse text-left text-xs">
                   <thead>
                     <tr className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800 text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 tracking-wider">
-                      <th className="px-5 py-3.5">User</th>
+                      <th className="pl-16 pr-5 py-3.5">User</th>
                       <th className="px-5 py-3.5">Department</th>
                       <th className="px-5 py-3.5">Role</th>
                       <th className="px-5 py-3.5">Status</th>
-                      <th className="px-5 py-3.5 text-right">Actions</th>
+                      <th className="px-5 py-3.5 text-left">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
@@ -681,8 +681,8 @@ export default function SuperAdminUsersRoles() {
                                 ● {user.is_active ? "Active" : "Inactive"}
                               </Badge>
                             </td>
-                            <td className="px-5 py-4 text-right">
-                              <div className="flex items-center justify-end gap-3">
+                            <td className="px-5 py-4 text-left">
+                              <div className="flex items-center justify-start gap-3">
                                 <Button
                                   variant="ghost"
                                   size="sm"

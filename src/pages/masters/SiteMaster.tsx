@@ -238,7 +238,7 @@ export default function SiteMaster() {
   const [searchQuery, setSearchQuery] = useState('');
   const [productTypeFilter, setProductTypeFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
-  const PAGE_SIZE = 12;
+  const PAGE_SIZE = 10;
 
   // Form states
   const [formSiteName, setFormSiteName] = useState('VC - Demo');
