@@ -25,11 +25,26 @@ export function AIAssistant() {
     }
   }, [messages, isLoading]);
 
-  const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const suggestions = [
+    "How many POs are pending?",
+    "What is our total vendor count?",
+    "Show me the database snapshot",
+    "Draft an email to a vendor"
+  ];
 
-    const userMessage = input.trim();
-    setInput('');
+  const handleSuggestionClick = (suggestion: string) => {
+    setShowSuggestions(false);
+    setInput(suggestion);
+    handleSend(suggestion);
+  };
+
+  const handleSend = async (overrideMessage?: string) => {
+    const messageToSend = overrideMessage || input;
+    if (!messageToSend.trim() || isLoading) return;
+
+    const userMessage = messageToSend.trim();
+    if (!overrideMessage) setInput('');
     setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
     setIsLoading(true);
 
@@ -43,7 +58,21 @@ export function AIAssistant() {
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const renderMessage = (text: string) => {
+    const parts = text.split(/(\*\*.*?\*\*)/g);
+    return parts.map((part, idx) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return (
+          <strong key={idx} className="font-semibold text-slate-900 dark:text-slate-100">
+            {part.slice(2, -2)}
+          </strong>
+        );
+      }
+      return <span key={idx}>{part}</span>;
+    });
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       handleSend();
@@ -57,7 +86,7 @@ export function AIAssistant() {
         <div className="mb-4 w-[350px] sm:w-[400px] h-[500px] max-h-[calc(100vh-120px)] bg-white dark:bg-slate-950 border rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-10 fade-in duration-300">
           <div className="p-4 border-b bg-indigo-600 dark:bg-indigo-700 flex flex-row items-center justify-between text-white">
             <div className="flex items-center gap-2">
-              <div className="bg-white/20 p-2 rounded-full">
+              <div className="bg-white/20 p-2 rounded-full shadow-inner">
                 <Bot className="h-5 w-5 text-white" />
               </div>
               <div>
@@ -65,7 +94,7 @@ export function AIAssistant() {
                 <p className="text-[10px] text-indigo-100 opacity-90">Real-time DB Assistant</p>
               </div>
             </div>
-            <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 rounded-full h-8 w-8" onClick={() => setOpen(false)}>
+            <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 rounded-full h-8 w-8 transition-colors" onClick={() => setOpen(false)}>
               <Minimize2 className="h-4 w-4" />
             </Button>
           </div>
@@ -74,20 +103,24 @@ export function AIAssistant() {
             <div className="flex flex-col gap-4 pb-4" ref={scrollRef}>
               {messages.map((msg, idx) => (
                 <div key={idx} className={`flex gap-3 max-w-[85%] ${msg.role === 'user' ? 'ml-auto flex-row-reverse' : ''}`}>
-                  <div className={`shrink-0 h-8 w-8 rounded-full flex items-center justify-center ${msg.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300'}`}>
+                  <div className={`shrink-0 h-8 w-8 rounded-full flex items-center justify-center shadow-sm ${msg.role === 'user' ? 'bg-indigo-600 text-white' : 'bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300'}`}>
                     {msg.role === 'user' ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
                   </div>
-                  <div className={`p-3 rounded-2xl text-sm ${msg.role === 'user' ? 'bg-primary text-primary-foreground rounded-tr-sm' : 'bg-white dark:bg-slate-800 border shadow-sm rounded-tl-sm'}`}>
-                    {msg.content}
+                  <div className={`p-3 rounded-2xl text-sm leading-relaxed ${
+                    msg.role === 'user' 
+                      ? 'bg-indigo-600 text-white rounded-tr-sm shadow-md' 
+                      : 'bg-white dark:bg-slate-800 border shadow-sm rounded-tl-sm whitespace-pre-wrap text-slate-700 dark:text-slate-300'
+                  }`}>
+                    {renderMessage(msg.content)}
                   </div>
                 </div>
               ))}
               {isLoading && (
                 <div className="flex gap-3 max-w-[85%]">
-                  <div className="shrink-0 h-8 w-8 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center text-indigo-700 dark:text-indigo-300">
+                  <div className="shrink-0 h-8 w-8 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center text-indigo-700 dark:text-indigo-300 shadow-sm">
                     <Bot className="h-4 w-4" />
                   </div>
-                  <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 border shadow-sm rounded-tl-sm flex items-center gap-1">
+                  <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 border shadow-sm rounded-tl-sm flex items-center gap-1.5">
                     <span className="h-1.5 w-1.5 bg-indigo-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
                     <span className="h-1.5 w-1.5 bg-indigo-400 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
                     <span className="h-1.5 w-1.5 bg-indigo-400 rounded-full animate-bounce"></span>
@@ -97,8 +130,31 @@ export function AIAssistant() {
             </div>
           </ScrollArea>
 
-          <div className="p-3 border-t bg-background">
+          <div className="p-3 border-t bg-background flex flex-col gap-2">
+            {showSuggestions && (
+              <div className="flex flex-wrap gap-2 mb-2 animate-in fade-in slide-in-from-bottom-2">
+                {suggestions.map((suggestion, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => handleSuggestionClick(suggestion)}
+                    className="text-xs px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 rounded-full transition-colors text-left border border-indigo-200 dark:border-indigo-800"
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
+            )}
+            
             <div className="flex items-center gap-2">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className={`rounded-full h-10 w-10 shrink-0 transition-colors ${showSuggestions ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300' : 'text-muted-foreground hover:bg-muted'}`}
+                onClick={() => setShowSuggestions(!showSuggestions)}
+                title="Suggestions"
+              >
+                <Sparkles className="h-4 w-4" />
+              </Button>
               <Input
                 placeholder="Ask about pending POs, Indents..."
                 value={input}
@@ -107,7 +163,7 @@ export function AIAssistant() {
                 disabled={isLoading}
                 className="flex-1 rounded-full bg-muted/50 border-transparent focus-visible:ring-indigo-500"
               />
-              <Button size="icon" className="rounded-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-md h-10 w-10 shrink-0" onClick={handleSend} disabled={!input.trim() || isLoading}>
+              <Button size="icon" className="rounded-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-md h-10 w-10 shrink-0" onClick={() => handleSend()} disabled={!input.trim() || isLoading}>
                 <Send className="h-4 w-4" />
               </Button>
             </div>

@@ -180,9 +180,9 @@ export default function SuperAdminPermissions() {
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!selectedRoleId) return;
-      const promises: Promise<any>[] = [];
-
-      Object.entries(permissions).forEach(([moduleKey, perm]) => {
+      
+      const entries = Object.entries(permissions);
+      for (const [moduleKey, perm] of entries) {
         const existing = permissionsList.find(
           (p: any) => String(p.role) === String(selectedRoleId) && p.module_key === moduleKey
         );
@@ -203,23 +203,24 @@ export default function SuperAdminPermissions() {
             existing.can_delete !== payload.can_delete;
 
           if (changed) {
-            promises.push(api.updateRoleModulePermission(existing.id, payload));
+            await api.updateRoleModulePermission(existing.id, {
+              ...payload,
+              role: Number(selectedRoleId),
+              module_key: moduleKey
+            });
           }
         } else {
           const hasAny = perm.view || perm.create || perm.modify || perm.delete;
           if (hasAny) {
-            promises.push(
-              api.saveRoleModulePermission({
-                role: Number(selectedRoleId),
-                module_key: moduleKey,
-                ...payload
-              })
-            );
+            await api.saveRoleModulePermission({
+              role: Number(selectedRoleId),
+              module_key: moduleKey,
+              ...payload
+            });
           }
         }
-      });
-
-      return Promise.all(promises);
+      }
+      return true;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["role-module-permissions"] });

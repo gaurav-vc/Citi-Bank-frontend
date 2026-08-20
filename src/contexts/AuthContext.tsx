@@ -76,7 +76,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Support both { user: {...} } and flat { id, email, ... } response shapes
       const userData: User = data.user || data;
       localStorage.setItem(USER_KEY, JSON.stringify(userData));
-      setUser(userData);
+      setUser((prevUser) => {
+        if (JSON.stringify(prevUser) !== JSON.stringify(userData)) {
+          return userData;
+        }
+        return prevUser;
+      });
     } catch (err) {
       console.warn('[AuthContext] refreshUser failed:', err);
       throw err;
@@ -159,6 +164,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     handleUrlToken();
   }, []);
+
+  // Poll user data every 15 seconds to fetch real-time permission updates
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (token) {
+      interval = setInterval(() => {
+        refreshUser(token).catch(err => {
+          console.warn('[AuthContext] Background poll failed:', err);
+        });
+      }, 15000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [token]);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {

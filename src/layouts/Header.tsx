@@ -28,6 +28,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { AccountModal } from '@/components/AccountModal';
 
 export function Header() {
   const { user, logout } = useAuth();
@@ -37,6 +38,7 @@ export function Header() {
   const [supportInfo, setSupportInfo] = useState<any>(null);
   const [isDocsOpen, setIsDocsOpen] = useState(false);
   const [docs, setDocs] = useState<any[]>([]);
+  const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
 
   const handleDocClick = (e: React.MouseEvent, doc: any) => {
     e.preventDefault();
@@ -309,11 +311,11 @@ export function Header() {
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>My Account</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setIsAccountModalOpen(true)}>
               <User className="mr-2 h-4 w-4" />
               Profile
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setIsAccountModalOpen(true)}>
               <Settings className="mr-2 h-4 w-4" />
               Settings
             </DropdownMenuItem>
@@ -429,6 +431,11 @@ export function Header() {
           </ScrollArea>
         </SheetContent>
       </Sheet>
+
+      <AccountModal 
+        isOpen={isAccountModalOpen} 
+        onClose={() => setIsAccountModalOpen(false)} 
+      />
 
     </header>
   );

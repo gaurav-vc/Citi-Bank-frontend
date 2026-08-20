@@ -324,14 +324,12 @@ export function Sidebar() {
 
     // Alias mappings for sidebar keys that map to permission keys
     if (key === 'core:setup') checkKey = 'core:users';
+    
+    // We remove the restrictive aliases for indents, rfqs, expenses, etc. 
+    // so that checking their specific checkboxes in the Super Admin UI actually works independently!
     if (key === 'procurement:approvals') checkKey = 'procurement:indents';
     if (key === 'procurement:workflows') checkKey = 'procurement:indents';
     if (key === 'procurement:inventory_master') checkKey = 'procurement:items';
-    if (key === 'procurement:indents_create' || key === 'procurement:indents_my') checkKey = 'procurement:indents';
-    if (key === 'procurement:inventory_view' || key === 'procurement:inventory_issue' || key === 'procurement:inventory_transfer' || key === 'procurement:inventory_disposal') checkKey = 'procurement:inventory';
-    if (key === 'procurement:qc_checklists') checkKey = 'procurement:qc';
-    if (key === 'procurement:expenses_create' || key === 'procurement:expenses_my') checkKey = 'procurement:expenses';
-    if (key === 'procurement:rfqs_active' || key === 'procurement:rfqs_comparison' || key === 'procurement:rfqs_vendor' || key === 'procurement:rfqs_quote') checkKey = 'procurement:rfqs';
     if (key === 'procurement:billing_approvals') checkKey = 'procurement:billing';
     if (key === 'reports:dashboard') checkKey = 'core:dashboard';
 
@@ -577,9 +575,8 @@ export function Sidebar() {
       </ScrollArea>
 
       {/* Footer */}
-      <div className="p-4 border-t border-sidebar-border space-y-2">
-
-        <button onClick={logout} className="nav-item w-full text-destructive hover:text-destructive">
+      <div className="p-4 border-t border-sidebar-border space-y-4">
+        <button onClick={logout} className="nav-item w-full text-destructive hover:text-destructive mt-2">
           <LogOut className="h-5 w-5" />
           <span>Logout</span>
         </button>

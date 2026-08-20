@@ -8,4 +8,5 @@ export const authAPI = {
       requireAuth: !token, 
       headers: token ? { Authorization: `Bearer ${token}` } : undefined 
     }),
+  updateUser: (id: string | number, data: any) => api.patch(`users/${id}/`, data),
 };

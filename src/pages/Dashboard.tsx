@@ -28,6 +28,7 @@ import {
   IndianRupee,
   Building,
 } from 'lucide-react';
+import { RoleLabels } from '@/types';
 import {
   LineChart,
   Line,
@@ -416,7 +417,7 @@ export default function Dashboard() {
               Dashboard
             </h1>
             <p className="text-muted-foreground">
-              Welcome back, {user.name}
+              Welcome back, {RoleLabels[user.role] || user.role}
             </p>
           </div>
 
