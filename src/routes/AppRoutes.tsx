@@ -338,7 +338,7 @@ export function AppRoutes() {
           <ProtectedRoute>
             <PermissionRoute
               roles={['super_admin', 'client_admin', 'admin']}
-              permissionKey="core:workflows"
+              permissionKey={['core:workflows', 'procurement:workflows']}
               action="view"
             >
               <WorkflowSetupPage />

@@ -118,7 +118,7 @@ const pathMap: Record<string, string> = {
   'procurement:budgets': '/masters/budget',
   'procurement:indents': '/requisitions/all',
   'procurement:approvals': '/requisitions/approvals',
-  'procurement:workflows': '/requisitions/approvals',
+  'procurement:workflows': '/setup/workflows',
   'procurement:rfqs': '/tendering/rfq',
   'procurement:rfqs_active': '/tendering/active',
   'procurement:rfqs_comparison': '/tendering/comparison',
@@ -317,21 +317,12 @@ export function Sidebar() {
       if (!['super_admin', 'client_admin', 'admin'].includes(user.role)) return false;
     }
 
-    // Always allow admin/client_admin to access Setup pages (Users & Roles, Role Permissions) in the sidebar
-    if (key === 'core:users' || key === 'core:settings' || key === 'core:documentation' || key === 'core:setup') {
-      if (user.role === 'admin' || user.role === 'client_admin') return true;
-    }
 
     // Alias mappings for sidebar keys that map to permission keys
-    if (key === 'core:setup') checkKey = 'core:users';
+    if (key === 'reports:dashboard') checkKey = 'core:dashboard';
     
     // We remove the restrictive aliases for indents, rfqs, expenses, etc. 
     // so that checking their specific checkboxes in the Super Admin UI actually works independently!
-    if (key === 'procurement:approvals') checkKey = 'procurement:indents';
-    if (key === 'procurement:workflows') checkKey = 'procurement:indents';
-    if (key === 'procurement:inventory_master') checkKey = 'procurement:items';
-    if (key === 'procurement:billing_approvals') checkKey = 'procurement:billing';
-    if (key === 'reports:dashboard') checkKey = 'core:dashboard';
 
     // 2. Use ONLY DB permissions configured for this user
     if (user.permissions && Object.keys(user.permissions).length > 0) {

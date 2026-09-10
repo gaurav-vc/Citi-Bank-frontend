@@ -6,7 +6,7 @@ import { UserRole } from '@/types';
 interface PermissionRouteProps {
   children: React.ReactNode;
   roles: UserRole[];
-  permissionKey?: string;
+  permissionKey?: string | string[];
   action?: 'view' | 'create' | 'update' | 'delete';
 }
 
@@ -58,38 +58,40 @@ export function PermissionRoute({
     return <>{children}</>;
   }
 
-  // Always allow admin/client_admin to access Setup pages (Users & Roles, Role Permissions)
-  // These are management pages not tied to module-level DB permissions
-  if ((user.role === 'admin' || user.role === 'client_admin') &&
-      permissionKey && ['core:users', 'core:settings'].includes(permissionKey)) {
-    return <>{children}</>;
-  }
+  const keysToCheck = permissionKey ? (Array.isArray(permissionKey) ? permissionKey : [permissionKey]) : [];
+
 
   // Explicitly block Organizations and Sites for non-admin roles, even if DB says otherwise
-  if (permissionKey === 'core:organizations' || permissionKey === 'core:sites') {
+  if (keysToCheck.some(k => ['core:organizations', 'core:sites'].includes(k))) {
     if (!['super_admin', 'client_admin', 'admin'].includes(user.role)) {
       return renderError(`Access denied. You do not have the required role to access Setup & Administration pages.`);
     }
   }
 
   // DB-FIRST: When permissionKey is provided, use ONLY DB permissions
-  if (permissionKey) {
+  if (keysToCheck.length > 0) {
     // Dashboard always accessible
-    if (permissionKey === 'core:dashboard') return <>{children}</>;
+    if (keysToCheck.includes('core:dashboard')) return <>{children}</>;
     
     if (user.permissions) {
-      const userFeaturePerms = user.permissions[permissionKey];
-      if (userFeaturePerms && userFeaturePerms[action] === true) {
-        return <>{children}</>;
+      for (const key of keysToCheck) {
+        const userFeaturePerms = user.permissions[key];
+        if (userFeaturePerms && userFeaturePerms[action] === true) {
+          return <>{children}</>;
+        }
       }
     }
     // Permission key exists in DB but access denied, OR key not in permissions at all
-    return renderError(`Database permissions check failed. Feature permissions for '${permissionKey}' are missing or action '${action}' is false.`);
+    return renderError(`Database permissions check failed. Feature permissions for '${keysToCheck.join(', ')}' are missing or action '${action}' is false.`);
   }
 
   // ROLE FALLBACK: If NO permissionKey is provided, it means this route relies on the 'roles' array (e.g. super-admin only routes without permission keys)
-  if (roles && !roles.includes(user.role as UserRole)) {
-    return renderError(`Access denied. You do not have the required role to access this page.`);
+  if (roles) {
+    const isAllowed = roles.includes(user.role as UserRole) || 
+                     (roles.includes('cxo' as UserRole) && (user.role || '').toLowerCase().includes('cxo'));
+    if (!isAllowed) {
+      return renderError(`Access denied. You do not have the required role to access this page.`);
+    }
   }
 
   return <>{children}</>;

@@ -11,6 +11,8 @@ import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { downloadFile } from '@/utils/downloadFile';
 import { useState, useEffect } from 'react';
 import { toast } from '@/hooks/use-toast';
@@ -117,6 +119,7 @@ export default function Dashboard() {
   const { user, token } = useAuth();
   const navigate = useNavigate();
 
+  const [date, setDate] = useState<Date | undefined>(new Date());
   const [metrics, setMetrics] = useState<any>(defaultMetrics);
   const [monthlySpendData, setMonthlySpendData] = useState<any[]>([]);
   const [categorySpend, setCategorySpend] = useState<any[]>([]);
@@ -422,10 +425,22 @@ export default function Dashboard() {
           </div>
 
           <div className="flex items-center gap-3">
-            <Button variant="outline">
-              <Calendar className="h-4 w-4 mr-2" />
-              {new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
-            </Button>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className={`justify-start text-left font-normal ${!date && "text-muted-foreground"}`}>
+                  <Calendar className="h-4 w-4 mr-2" />
+                  {date ? date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : <span>Pick a date</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <CalendarComponent
+                  mode="single"
+                  selected={date}
+                  onSelect={setDate}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
 
             <Button onClick={handleGenerateReport}>
               <FileText className="h-4 w-4 mr-2" />

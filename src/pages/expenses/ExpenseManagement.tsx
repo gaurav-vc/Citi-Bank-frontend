@@ -163,7 +163,7 @@ export default function ExpenseManagement() {
   if (isCreateRoute) {
     return (
       <MainLayout>
-        <div className="max-w-2xl mx-auto space-y-6">
+        <div className="space-y-6">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Create New Expense</h1>
             <p className="text-muted-foreground">Submit a new site or operational expense for approval</p>
