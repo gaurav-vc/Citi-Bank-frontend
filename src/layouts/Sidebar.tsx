@@ -146,7 +146,7 @@ const pathMap: Record<string, string> = {
   'procurement:qc_checklists': '/qc/checklists',
   'procurement:expenses_create': '/expenses/create',
   'procurement:expenses_my': '/expenses/my-expenses',
-  'procurement:inventory_master': '/masters/inventory-master',
+  'procurement:inventory_master': '/masters/indent-setup',
   'superadmin:dashboard': '/super-admin/dashboard',
   'superadmin:organizations': '/super-admin/organizations',
   'superadmin:sites': '/super-admin/sites',
@@ -312,11 +312,6 @@ export function Sidebar() {
 
     let checkKey = key;
     
-    // Explicitly block Organizations and Sites for non-admin roles, even if DB says otherwise
-    if (key === 'core:organizations' || key === 'core:sites') {
-      if (!['super_admin', 'client_admin', 'admin'].includes(user.role)) return false;
-    }
-
 
     // Alias mappings for sidebar keys that map to permission keys
     if (key === 'reports:dashboard') checkKey = 'core:dashboard';

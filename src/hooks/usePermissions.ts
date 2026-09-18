@@ -22,18 +22,6 @@ export function usePermissions(moduleKey: string): PermissionsResult {
     };
   }
 
-  // Master fallback for certain setup pages available to admins
-  if (['admin', 'client_admin'].includes(user?.role || '') && 
-      ['core:users', 'core:settings', 'core:documentation', 'core:organizations', 'core:sites'].includes(moduleKey)) {
-    return {
-      canView: true,
-      canCreate: true,
-      canEdit: true,
-      canDelete: true,
-      canApprove: true,
-    };
-  }
-
   // Dynamically check user permissions object
   if (user?.permissions) {
     const perms = user.permissions[moduleKey];
@@ -41,8 +29,8 @@ export function usePermissions(moduleKey: string): PermissionsResult {
       return {
         canView: !!perms.view,
         canCreate: !!perms.create,
-        // Treat modify and edit interchangeably using the defined 'update' property
-        canEdit: !!perms.update,
+        // Treat modify and edit interchangeably
+        canEdit: !!(perms.edit || perms.update || perms.modify),
         canDelete: !!perms.delete,
         // Fallback approve to modify if not explicitly present
         canApprove: !!(perms.approve || perms.update),

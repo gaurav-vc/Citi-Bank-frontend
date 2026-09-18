@@ -93,7 +93,9 @@ const MODULE_ACCESS_SECTIONS: ModuleSection[] = [
       { key: "core:sites", label: "Sites" },
       { key: "core:departments", label: "Departments" },
       { key: "core:users", label: "User Contexts" },
-      { key: "core:users", label: "Role Management" } // Mapped to core:users in Django backend
+      { key: "core:settings", label: "Role Permissions" },
+      { key: "core:workflows", label: "Approval Workflows" },
+      { key: "core:documentation", label: "System Config" }
     ]
   },
   {
@@ -205,18 +207,29 @@ export default function RoleBaseAccessPage() {
       setCurrentMappingId(matchedMapping.department === selectedDeptId ? matchedMapping.id : null);
       
       const loadedPerms: Record<string, Record<ActionKey, boolean>> = {};
-      MODULE_ACCESS_SECTIONS.forEach((section) => {
-        section.items.forEach((item) => {
-          const matchedPerms = matchedMapping?.permissions?.[item.key] || {};
-          loadedPerms[item.key] = {
-            view: !!matchedPerms.view,
-            create: !!matchedPerms.create,
-            modify: !!(matchedPerms.modify || matchedPerms.edit),
-            cancel: !!matchedPerms.cancel,
-            delete: !!matchedPerms.delete
+      
+      // Preserve all existing keys from the database mapping to prevent wiping them out
+      if (matchedMapping.permissions) {
+        Object.entries(matchedMapping.permissions).forEach(([key, val]: [string, any]) => {
+          loadedPerms[key] = {
+            view: !!val.view,
+            create: !!val.create,
+            modify: !!(val.modify || val.edit),
+            cancel: !!val.cancel,
+            delete: !!val.delete
           };
         });
+      }
+
+      // Ensure all UI sections are initialized
+      MODULE_ACCESS_SECTIONS.forEach((section) => {
+        section.items.forEach((item) => {
+          if (!loadedPerms[item.key]) {
+            loadedPerms[item.key] = blankPermissions();
+          }
+        });
       });
+      
       setPermissions(loadedPerms);
       setIsEditMode(false);
     } else {

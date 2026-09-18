@@ -61,13 +61,6 @@ export function PermissionRoute({
   const keysToCheck = permissionKey ? (Array.isArray(permissionKey) ? permissionKey : [permissionKey]) : [];
 
 
-  // Explicitly block Organizations and Sites for non-admin roles, even if DB says otherwise
-  if (keysToCheck.some(k => ['core:organizations', 'core:sites'].includes(k))) {
-    if (!['super_admin', 'client_admin', 'admin'].includes(user.role)) {
-      return renderError(`Access denied. You do not have the required role to access Setup & Administration pages.`);
-    }
-  }
-
   // DB-FIRST: When permissionKey is provided, use ONLY DB permissions
   if (keysToCheck.length > 0) {
     // Dashboard always accessible

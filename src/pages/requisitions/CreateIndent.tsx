@@ -46,13 +46,9 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { DataTablePagination } from "@/components/ui/data-table-pagination";
 import { toast } from '@/hooks/use-toast';
-import { IndentItem, Approval } from '@/types';
+import { IndentItem, Approval, RoleLabels } from '@/types';
 
-const defaultCategories = [{ value: 'electrical', label: 'Electrical' }, { value: 'hvac', label: 'HVAC' }, { value: 'plumbing', label: 'Plumbing' }, { value: 'housekeeping', label: 'Housekeeping' }, { value: 'security', label: 'Security' }];
-const defaultTowers = [{ value: 'tower_a', label: 'Tower A' }, { value: 'tower_b', label: 'Tower B' }];
-const defaultFloors = Array.from({ length: 15 }, (_, i) => ({ value: `${i + 1}f`, label: `${i + 1}${['st', 'nd', 'rd'][i] || 'th'} Floor` }));
-const defaultRequestTypes = [{ value: 'material', label: 'Material Request' }, { value: 'service', label: 'Service Request' }, { value: 'amc', label: 'AMC Request' }];
-const defaultBudgetHeads = [{ value: 'opex', label: 'OPEX (Operational)' }, { value: 'capex', label: 'CAPEX (Capital)' }];
+// Dynamic options will be fetched from the backend
 
 export default function CreateIndent() {
   const { user } = useAuth();
@@ -67,11 +63,11 @@ export default function CreateIndent() {
   const [invComments, setInvComments] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [categories, setCategories] = useState<any[]>(defaultCategories);
-  const [towers, setTowers] = useState<any[]>(defaultTowers);
-  const [floors, setFloors] = useState<any[]>(defaultFloors);
-  const [requestTypes, setRequestTypes] = useState<any[]>(defaultRequestTypes);
-  const [budgetHeads, setBudgetHeads] = useState<any[]>(defaultBudgetHeads);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [towers, setTowers] = useState<any[]>([]);
+  const [floors, setFloors] = useState<any[]>([]);
+  const [requestTypes, setRequestTypes] = useState<any[]>([]);
+  const [budgetHeads, setBudgetHeads] = useState<any[]>([]);
 
   const [items, setItems] = useState<any[]>([]);
   const [vendors, setVendors] = useState<any[]>([]);
@@ -162,8 +158,8 @@ export default function CreateIndent() {
           const reqs = activeFields.filter((f: any) => f.field_type === 'request_type');
           if (reqs.length > 0) setRequestTypes(reqs);
           
-          const bgts = activeFields.filter((f: any) => f.field_type === 'budget_head');
-          if (bgts.length > 0) setBudgetHeads(bgts);
+          const buds = activeFields.filter((f: any) => f.field_type === 'budget_head');
+          if (buds.length > 0) setBudgetHeads(buds);
         }
       } catch (err) {
         console.error('Error fetching items or vendors:', err);
@@ -360,14 +356,57 @@ export default function CreateIndent() {
   const [approvalWorkflow, setApprovalWorkflow] = useState<Approval[]>([]);
 
   useEffect(() => {
-    setApprovalWorkflow([
-      { id: '1', stage: 'Created by Site Manager', approver: 'Site Manager', approverRole: 'site_manager', status: 'approved' },
-      { id: '2', stage: 'Approved by Store Keeper', approver: 'Store Keeper', approverRole: 'store_keeper', status: 'pending' },
-      { id: '3', stage: 'Approved by Procurement Manager', approver: 'Procurement Manager', approverRole: 'procurement_manager', status: 'pending' },
-      { id: '4', stage: 'Approved by Facility Manager', approver: 'Facility Manager', approverRole: 'facility_manager', status: 'pending' },
-      { id: '5', stage: 'Completed', approver: 'System', approverRole: 'system', status: 'pending' },
-    ]);
-  }, []);
+    const fetchDynamicRules = async () => {
+      try {
+        const token = localStorage.getItem('campusspend_token');
+        const base = (import.meta.env.VITE_API_BASE_URL || (import.meta.env.MODE === 'production' ? 'https://procurement.vibesandbox.live' : 'http://localhost:8000'));
+        const res = await fetch(`${base}/api/workflow-rules/?module=indents`, {
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        });
+        
+        if (res.ok) {
+          const rules = await res.json();
+          
+          if (rules.length === 0) {
+            setApprovalWorkflow([
+              { id: '0', stage: `Created by ${RoleLabels[user?.role as keyof typeof RoleLabels] || 'User'}`, approver: user?.name || 'User', approverRole: user?.role || '', status: 'approved' },
+              { id: 'error', stage: 'No Workflow Configured!', approver: 'System', approverRole: 'system', status: 'rejected' }
+            ]);
+            return;
+          }
+
+          const applicableRules = rules.filter((r: any) => 
+            totalEstimatedCost >= Number(r.min_amount) && 
+            totalEstimatedCost <= Number(r.max_amount)
+          ).sort((a: any, b: any) => a.step_sequence - b.step_sequence);
+
+          const timeline: Approval[] = [];
+          timeline.push({ id: '0', stage: `Created by ${RoleLabels[user?.role as keyof typeof RoleLabels] || 'User'}`, approver: user?.name || 'User', approverRole: user?.role || '', status: 'approved' });
+
+          if (applicableRules.length === 0) {
+             timeline.push({ id: 'error', stage: 'No Workflow Configured for this Amount!', approver: 'System', approverRole: 'system', status: 'rejected' });
+          } else {
+            applicableRules.forEach((rule: any) => {
+                timeline.push({
+                   id: rule.id.toString(),
+                   stage: `Approved by ${RoleLabels[rule.required_role_name as keyof typeof RoleLabels] || rule.required_role_name}`,
+                   approver: RoleLabels[rule.required_role_name as keyof typeof RoleLabels] || rule.required_role_name,
+                   approverRole: rule.required_role_name,
+                   status: 'pending'
+                });
+            });
+            timeline.push({ id: '99', stage: 'Completed', approver: 'System', approverRole: 'system', status: 'pending' });
+          }
+          
+          setApprovalWorkflow(timeline);
+        }
+      } catch (err) {
+        console.error("Failed to fetch dynamic rules", err);
+      }
+    };
+    
+    fetchDynamicRules();
+  }, [totalEstimatedCost, user?.role, user?.name]);
   const handleSaveDraft = async () => {
     if (isSubmitting) return;
     setIsSubmitting(true);

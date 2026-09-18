@@ -120,7 +120,7 @@ export function AppRoutes() {
       />
 
       <Route
-        path="/masters/inventory-master"
+        path="/masters/indent-setup"
         element={
           <ProtectedRoute>
             <PermissionRoute

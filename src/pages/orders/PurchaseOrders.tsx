@@ -38,6 +38,7 @@ import { PurchaseOrder } from '@/types';
 import { downloadFile } from '@/utils/downloadFile';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useWorkflow } from '@/hooks/useWorkflow';
 import { WorkflowContainer } from '@/components/workflow/WorkflowContainer';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -586,6 +587,12 @@ export default function PurchaseOrders() {
 }
 
 function PODetailView({ po, onClose, onDownload }: { po: PurchaseOrder; onClose: () => void; onDownload: (po: any) => void }) {
+  const { timeline, fetchTimeline } = useWorkflow();
+
+  useEffect(() => {
+    fetchTimeline('orders', po.id);
+  }, [po.id]);
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
@@ -595,53 +602,7 @@ function PODetailView({ po, onClose, onDownload }: { po: PurchaseOrder; onClose:
   };
 
   const getStageStatus = (stageNum: number) => {
-    const status = po.status?.toLowerCase() || '';
-    if (status === 'approved' || status === 'vendor_accepted' || status === 'closed') return 'completed';
-    if (status === 'rejected') return 'failed';
-    
-    if (stageNum === 1) {
-      if (status === 'pending_procurement_approval') return 'pending';
-      return 'completed';
-    }
-    if (stageNum === 2) {
-      if (status === 'budget_validation_pending') return 'pending';
-      if (status === 'budget_hold') return 'hold';
-      if (status === 'pending_procurement_approval') return 'queued';
-      return 'completed';
-    }
-    if (stageNum === 3) {
-      if (status === 'finance_approved') return 'pending';
-      if (status === 'pending_procurement_approval' || status === 'budget_validation_pending' || status === 'budget_hold') return 'queued';
-      return 'completed';
-    }
-    if (stageNum === 4) {
-      if (status === 'released') return 'pending';
-      return 'queued';
-    }
-    return 'queued';
-  };
-
-  const getWorkflowTimestamp = (roleName: string) => {
-    const history = (po as any).rfqWorkflowHistory || [];
-    let entry = history.find((h: any) => h.role === roleName);
-    if (!entry && roleName === 'procurement_manager') {
-      entry = history.find((h: any) => h.action?.toLowerCase() === 'submitted');
-    }
-    if (!entry && ['cxo', 'cxo_citi', 'cxo_emb'].includes(roleName || '')) {
-      entry = history.find((h: any) => h.role === 'cxo_citi' || h.role === 'cxo_emb');
-    }
-    
-    if (entry && entry.timestamp) {
-      const date = new Date(entry.timestamp);
-      const day = String(date.getDate()).padStart(2, '0');
-      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      const month = months[date.getMonth()];
-      const year = date.getFullYear();
-      const hours = String(date.getHours()).padStart(2, '0');
-      const minutes = String(date.getMinutes()).padStart(2, '0');
-      return `${day}-${month}-${year} ${hours}:${minutes}`;
-    }
-    return '-';
+    return 'queued'; // Deprecated
   };
 
   return (
@@ -705,16 +666,12 @@ function PODetailView({ po, onClose, onDownload }: { po: PurchaseOrder; onClose:
           <div>
             <h4 className="font-semibold mb-3">Approval Stage Progress</h4>
             <div className="grid gap-3 md:grid-cols-4">
-              {[
-                { label: 'Commercial Terms', role: 'Procurement Manager', stage: 1 },
-                { label: 'Budget Validation', role: 'Finance Executive', stage: 2 },
-                { label: 'Financial Release', role: 'Finance Manager', stage: 3 },
-                { label: 'Vendor Acceptance', role: 'Vendor', stage: 4 },
-              ].map((st) => {
-                const stageStatus = getStageStatus(st.stage);
+              {(timeline?.steps || []).map((st: any) => {
+                const stageStatus = st.status === 'approved' ? 'completed' : (st.status === 'pending' ? 'pending' : (st.status === 'escalated' ? 'hold' : 'queued'));
+                const label = st.assigned_role_name.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
                 return (
                   <div
-                    key={st.stage}
+                    key={st.id}
                     className={`p-3 border rounded-xl flex flex-col justify-between h-24 transition-all ${
                       stageStatus === 'completed'
                         ? 'border-emerald-200 bg-emerald-50/50 dark:border-emerald-900/50 dark:bg-emerald-950/10'
@@ -726,8 +683,8 @@ function PODetailView({ po, onClose, onDownload }: { po: PurchaseOrder; onClose:
                     }`}
                   >
                     <div>
-                      <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{st.role}</p>
-                      <p className="text-sm font-bold text-slate-800 dark:text-slate-100 mt-1">{st.label}</p>
+                      <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Step {st.step_sequence}</p>
+                      <p className="text-sm font-bold text-slate-800 dark:text-slate-100 mt-1">{label}</p>
                     </div>
                     <span
                       className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider self-start ${
@@ -816,18 +773,22 @@ function PODetailView({ po, onClose, onDownload }: { po: PurchaseOrder; onClose:
           <div className="p-4 bg-muted/30 rounded-xl border border-slate-200/50 dark:border-slate-800/50 space-y-4">
             <h4 className="font-semibold text-sm">Signatures & Approvals</h4>
             <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
-              {[
-                { title: 'Prepared By', role: 'Procurement Manager', roleKey: 'procurement_manager' },
-                { title: 'Checked By', role: 'Facility Manager', roleKey: 'facility_manager' },
-                { title: 'Verified By', role: 'Project Head', roleKey: 'project_head' },
-                { title: 'Approved By', role: 'CXO', roleKey: 'cxo' },
-              ].map((sig) => {
-                const ts = getWorkflowTimestamp(sig.roleKey);
+              {(timeline?.steps || []).filter((s: any) => s.status === 'approved').map((sig: any) => {
+                const ts = sig.actioned_at ? new Date(sig.actioned_at).toLocaleString('en-IN', {
+                  day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                }) : '-';
+                
+                const totalSteps = timeline?.steps?.length || 1;
+                let title = 'Reviewed By';
+                if (sig.step_sequence === 1) title = 'Prepared By';
+                else if (sig.step_sequence === totalSteps) title = 'Approved By';
+                else title = 'Checked By';
+                
                 return (
-                  <div key={sig.title} className="p-3 bg-white dark:bg-slate-900 border rounded-lg flex flex-col justify-between h-20 text-center">
+                  <div key={sig.id} className="p-3 bg-white dark:bg-slate-900 border rounded-lg flex flex-col justify-between h-20 text-center">
                     <div>
-                      <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">{sig.title}</p>
-                      <p className="text-xs font-bold mt-1">{sig.role}</p>
+                      <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">{title}</p>
+                      <p className="text-xs font-bold mt-1">{sig.assigned_role_name.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())}</p>
                     </div>
                     <p className="text-[11px] text-slate-500 font-medium">{ts}</p>
                   </div>
