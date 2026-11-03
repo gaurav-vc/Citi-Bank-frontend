@@ -131,16 +131,21 @@ export default function QualityInspection() {
         setInspectingGrn(detailedGrn);
         
         // Initialize inspection inputs using received qty as starting point for accepted qty
-        const items = (detailedGrn.items || []).map((i: any) => ({
-          item_id: i.item_id || i.itemId || '',
-          item_name: i.item_name || i.itemName || '',
-          ordered_quantity: i.ordered_quantity || 0,
-          received_quantity: i.received_quantity || 0,
-          accepted_quantity: i.accepted_quantity || i.received_quantity || 0,
-          rejected_quantity: i.rejected_quantity || 0,
-          remarks: i.remarks || '',
-          uom: i.uom || 'Nos'
-        }));
+        const items = (detailedGrn.items || []).map((i: any) => {
+          const rec = i.received_quantity ?? i.received_qty ?? i.receivedQty ?? i.ordered_quantity ?? i.orderedQty ?? 0;
+          const acc = i.accepted_quantity ?? i.accepted_qty ?? i.acceptedQty ?? 0;
+          const rej = i.rejected_quantity ?? i.rejected_qty ?? i.rejectedQty ?? 0;
+          return {
+            item_id: i.item_id || i.itemId || '',
+            item_name: i.item_name || i.itemName || '',
+            ordered_quantity: i.ordered_quantity ?? i.ordered_qty ?? i.orderedQty ?? 0,
+            received_quantity: rec,
+            accepted_quantity: (acc > 0 || rej > 0) ? acc : rec,
+            rejected_quantity: (acc > 0 || rej > 0) ? rej : 0,
+            remarks: i.remarks || '',
+            uom: i.uom || 'Nos'
+          };
+        });
         setInspectionItems(items);
         setValidationError(null);
       }

@@ -20,12 +20,14 @@ export interface GRN {
   received_by: string;
   items: any[];
   status: string;
-  invoice_status: string;
-  vendor_name: string;
-  invoice_number: string;
-  remarks: string;
+  invoice_status?: string;
+  vendor_name?: string;
+  invoice_number?: string;
+  invoice_date?: string;
+  remarks?: string;
   attachments?: any[];
   created_at?: string;
+  [key: string]: any;
 }
 
 export interface StockTransfer {
@@ -132,6 +134,14 @@ export const inventoryAPI = {
   },
   processGRNAction: async (id: string, data: any): Promise<any> => {
     const response = await api.post(`grns/${id}/action/`, data);
+    return response;
+  },
+  inspectGRN: async (id: string, data: any): Promise<any> => {
+    const response = await api.post(`qc/grns/${id}/inspect/`, data);
+    return response;
+  },
+  updateGRN: async (id: string, data: any): Promise<any> => {
+    const response = await api.patch(`grns/${id}/`, data);
     return response;
   },
 

@@ -27,6 +27,7 @@ import {
   Archive,
   CheckSquare,
   Trash2,
+  RefreshCw,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -61,6 +62,7 @@ const mapOrder = (o: any) => ({
   type: o.type,
   vendor: o.vendor,
   category: o.category,
+  tower: o.tower || '',
   totalValue: typeof o.total_value === 'string' ? parseFloat(o.total_value) : o.total_value,
   taxes: typeof o.taxes === 'string' ? parseFloat(o.taxes) : o.taxes,
   retentionPercent: o.retention_percent,
@@ -95,6 +97,20 @@ export default function PurchaseOrders() {
 
   useEffect(() => {
     fetchOrders();
+
+    // Auto-refresh when window gains focus
+    const handleFocus = () => fetchOrders();
+    window.addEventListener('focus', handleFocus);
+
+    // Dynamic real-time polling every 12 seconds
+    const interval = setInterval(() => {
+      fetchOrders();
+    }, 12000);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      clearInterval(interval);
+    };
   }, []);
 
   const handleDownloadPO = async (po: any) => {
@@ -310,6 +326,10 @@ export default function PurchaseOrders() {
             </p>
           </div>
           <div className="flex items-center gap-3">
+            <Button variant="outline" onClick={fetchOrders} disabled={isLoading} title="Refresh real-time data">
+              <RefreshCw className={cn("h-4 w-4 mr-2", isLoading && "animate-spin text-primary")} />
+              Refresh
+            </Button>
             <Button variant="outline" onClick={handleExport}>
               <Download className="h-4 w-4 mr-2" />
               Export
@@ -574,10 +594,22 @@ export default function PurchaseOrders() {
             po={selectedPO} 
             onClose={() => {
               setSelectedPO(null);
+              fetchOrders();
               if (id) {
                 navigate('/purchase-orders');
               }
             }} 
+            onRefresh={async () => {
+              await fetchOrders();
+              try {
+                const updated = await ordersAPI.getOrder(selectedPO.id);
+                if (updated) {
+                  setSelectedPO(mapOrder(updated));
+                }
+              } catch (e) {
+                console.error(e);
+              }
+            }}
             onDownload={handleDownloadPO} 
           />
         )}
@@ -586,7 +618,7 @@ export default function PurchaseOrders() {
   );
 }
 
-function PODetailView({ po, onClose, onDownload }: { po: PurchaseOrder; onClose: () => void; onDownload: (po: any) => void }) {
+function PODetailView({ po, onClose, onRefresh, onDownload }: { po: PurchaseOrder; onClose: () => void; onRefresh: () => void; onDownload: (po: any) => void }) {
   const { timeline, fetchTimeline } = useWorkflow();
 
   useEffect(() => {
@@ -799,7 +831,7 @@ function PODetailView({ po, onClose, onDownload }: { po: PurchaseOrder; onClose:
 
           {/* Reusable Workflow Engine Engine Integration */}
           <div className="pt-6 border-t">
-            <WorkflowContainer module="orders" entityId={po.id} onWorkflowUpdate={onClose} />
+            <WorkflowContainer module="orders" entityId={po.id} onWorkflowUpdate={onRefresh} />
           </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t">

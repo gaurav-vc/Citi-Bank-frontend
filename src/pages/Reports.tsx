@@ -108,6 +108,14 @@ export default function Reports() {
   const { token } = useAuth();
   const [selectedPeriod, setSelectedPeriod] = useState('current-fy');
   const [selectedTower, setSelectedTower] = useState('all');
+  const [availablePeriods, setAvailablePeriods] = useState<any[]>([
+    { label: 'FY 2024-25', value: 'current-fy' },
+    { label: 'FY 2023-24', value: 'last-fy' },
+    { label: 'Year to Date', value: 'ytd' },
+    { label: 'Quarter to Date', value: 'qtd' },
+    { label: 'Month to Date', value: 'mtd' },
+  ]);
+
 
   const [spendByCategory, setSpendByCategory] = useState<any[]>(initialSpendByCategory);
   const [monthlySpend, setMonthlySpend] = useState<any[]>(initialMonthlySpend);
@@ -135,6 +143,7 @@ export default function Reports() {
         if (data.inventoryTrend) setInventoryTrend(data.inventoryTrend);
         if (data.budgetSummary) setBudgetSummary(data.budgetSummary);
         if (data.inventorySummary) setInventorySummary(data.inventorySummary);
+        if (data.availablePeriods) setAvailablePeriods(data.availablePeriods);
       } catch (err: any) {
         console.error('Reports data load error:', err);
       } finally {
@@ -287,11 +296,9 @@ export default function Reports() {
                 <SelectValue placeholder="Period" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="current-fy">FY 2024-25</SelectItem>
-                <SelectItem value="last-fy">FY 2023-24</SelectItem>
-                <SelectItem value="ytd">Year to Date</SelectItem>
-                <SelectItem value="qtd">Quarter to Date</SelectItem>
-                <SelectItem value="mtd">Month to Date</SelectItem>
+                {availablePeriods.map((period) => (
+                  <SelectItem key={period.value} value={period.value}>{period.label}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <Select value={selectedTower} onValueChange={setSelectedTower}>

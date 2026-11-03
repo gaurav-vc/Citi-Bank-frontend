@@ -80,7 +80,29 @@ export function Header() {
         setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, is_read: true } : n));
       }
       if (notif.link_url) {
-        navigate(notif.link_url);
+        let target = String(notif.link_url).trim();
+
+        // If it starts with any absolute URL (e.g. https://procurement.vibesandbox.live, localhost, etc.),
+        // extract the relative path so React Router stays inside the active app
+        try {
+          if (target.startsWith('http://') || target.startsWith('https://')) {
+            const parsed = new URL(target);
+            target = parsed.pathname + parsed.search + parsed.hash;
+          }
+        } catch {
+          target = target.replace(/^https?:\/\/[^\/]+/, '');
+        }
+
+        if (!target.startsWith('/')) {
+          target = '/' + target;
+        }
+
+        // Avoid redirecting to login page if user is already authenticated inside the application
+        if (target === '/login' || !target || target === '/') {
+          target = '/dashboard';
+        }
+
+        navigate(target);
       }
     } catch (err: any) {
       toast({

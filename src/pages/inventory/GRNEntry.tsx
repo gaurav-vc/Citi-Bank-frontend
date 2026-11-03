@@ -7,13 +7,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from '@/components/ui/textarea';
 import { 
   Plus, Search, Filter, Package, CheckCircle, XCircle, Clock,
-  Eye, FileText, Truck, ClipboardCheck, AlertTriangle, Download, ArrowLeft
+  Eye, FileText, Truck, ClipboardCheck, AlertTriangle, Download, ArrowLeft,
+  RefreshCw, Edit3, CheckCircle2
 } from 'lucide-react';
 import { downloadFile } from '@/utils/downloadFile';
 import { useAuth } from '@/contexts/AuthContext';
@@ -158,7 +159,18 @@ export default function GRNEntry() {
     setIsFetchingPOs(true);
     try {
       const data = await ordersAPI.getOrders('?status=approved');
-      setApprovedPOs(data);
+      const list = Array.isArray(data) ? data : (data.results ?? []);
+      const mapped = list.map((po: any) => ({
+        ...po,
+        id: po.id,
+        vendorName: po.vendor_name || po.vendorName || po.vendor || '',
+        startDate: po.start_date || po.startDate || (po.created_at ? po.created_at.split('T')[0] : 'N/A'),
+        netValue: typeof (po.net_value ?? po.netValue) === 'string'
+          ? parseFloat(po.net_value ?? po.netValue)
+          : (po.net_value ?? po.netValue ?? po.total_value ?? 0),
+        items: po.items ?? [],
+      }));
+      setApprovedPOs(mapped);
     } catch (err: any) {
       toast({ title: 'Error fetching POs', description: err.message, variant: 'destructive' });
     } finally {
@@ -170,13 +182,14 @@ export default function GRNEntry() {
     if (!selectedPO) return;
     toast({ title: 'Creating GRN...', description: `Generating GRN from PO ${selectedPO.id}` });
     try {
-      const poItems = selectedPO.items.map((item: any, index: number) => ({
-        item_id: `item-${index + 1}`,
-        item_name: item.itemName || 'Unknown Item',
-        ordered_qty: item.quantity || 0,
-        received_qty: item.quantity || 0,
+      const poItems = (selectedPO.items || []).map((item: any, index: number) => ({
+        item_id: item.itemId || item.item_id || `item-${index + 1}`,
+        item_name: item.itemName || item.item_name || item.name || 'Unknown Item',
+        ordered_qty: item.quantity ?? item.ordered_qty ?? 0,
+        received_qty: item.quantity ?? item.ordered_qty ?? item.received_qty ?? 0,
         accepted_qty: 0,
-        uom: item.uom || 'Nos'
+        uom: item.uom || 'Nos',
+        unit_price: item.rate ?? item.unit_price ?? item.price ?? 0
       }));
 
       await api.post('grns/', {
@@ -186,7 +199,7 @@ export default function GRNEntry() {
         received_date: new Date().toISOString().split('T')[0],
         invoice_number: invoiceNumber || '',
         invoice_date: invoiceDate || null,
-        vendor_name: selectedPO.vendorName || '',
+        vendor_name: selectedPO.vendorName || selectedPO.vendor_name || selectedPO.vendor || '',
         attachments: [],
         remarks: 'Auto-generated GRN from PO',
         status: 'pending',
@@ -295,8 +308,8 @@ export default function GRNEntry() {
                     <div className="space-y-4">
                       <div className="p-4 bg-muted/30 rounded-md border text-sm space-y-2">
                         <div className="grid grid-cols-2 gap-2">
-                          <div><span className="font-semibold text-muted-foreground">PO Date:</span> {selectedPO.startDate || 'N/A'}</div>
-                          <div><span className="font-semibold text-muted-foreground">Total Value:</span> {selectedPO.netValue || 0}</div>
+                          <div><span className="font-semibold text-muted-foreground">PO Date:</span> {selectedPO.startDate || selectedPO.start_date || 'N/A'}</div>
+                          <div><span className="font-semibold text-muted-foreground">Total Value:</span> ₹{Number(selectedPO.netValue || selectedPO.net_value || 0).toLocaleString('en-IN')}</div>
                           <div><span className="font-semibold text-muted-foreground">Items:</span> {selectedPO.items?.length || 0} items</div>
                         </div>
                       </div>
@@ -895,30 +908,177 @@ interface GRNDetailsProps {
 
 function GRNDetailsView({ grnId, onBack }: GRNDetailsProps) {
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [grnData, setGrnData] = useState<any>(null);
 
+  // Inspection Modal State
+  const [isInspectOpen, setIsInspectOpen] = useState(false);
+  const [inspectionItems, setInspectionItems] = useState<any[]>([]);
+  const [submittingInspect, setSubmittingInspect] = useState(false);
+
+  // Process Modal State (when QC is completed)
+  const [isProcessOpen, setIsProcessOpen] = useState(false);
+  const [inventoryDecision, setInventoryDecision] = useState<'surplus' | 'site'>('surplus');
+  const [submittingProcess, setSubmittingProcess] = useState(false);
+
+  // Dynamic Config / Edit Info Modal State
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editInvoiceNumber, setEditInvoiceNumber] = useState('');
+  const [editInvoiceDate, setEditInvoiceDate] = useState('');
+  const [editRemarks, setEditRemarks] = useState('');
+  const [submittingEdit, setSubmittingEdit] = useState(false);
+
+  const fetchDetails = async (isManualRefresh = false) => {
+    try {
+      if (isManualRefresh) setRefreshing(true);
+      else setLoading(true);
+      setError(null);
+      const data = await inventoryAPI.getGRNById(grnId);
+      setGrnData(data);
+      setEditInvoiceNumber(data.invoice_number || '');
+      setEditInvoiceDate(data.invoice_date || '');
+      setEditRemarks(data.remarks || '');
+    } catch (err: any) {
+      setError(err.message || 'An error occurred while fetching details.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchDetails = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await inventoryAPI.getGRNById(grnId);
-        setGrnData(data);
-      } catch (err: any) {
-        setError(err.message || 'An error occurred while fetching details.');
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchDetails();
   }, [grnId]);
+
+  const handleOpenInspect = () => {
+    if (!grnData?.items) return;
+    const items = grnData.items.map((it: any) => {
+      const rec = it.received_quantity ?? it.received_qty ?? it.receivedQty ?? it.ordered_quantity ?? it.orderedQty ?? 0;
+      const acc = it.accepted_quantity ?? it.accepted_qty ?? it.acceptedQty ?? 0;
+      const rej = it.rejected_quantity ?? it.rejected_qty ?? it.rejectedQty ?? 0;
+      return {
+        item_id: it.item_id || it.itemId || '',
+        item_name: it.item_name || it.itemName || '',
+        ordered_quantity: it.ordered_quantity ?? it.ordered_qty ?? it.orderedQty ?? 0,
+        received_quantity: rec,
+        accepted_quantity: (acc > 0 || rej > 0) ? acc : rec,
+        rejected_quantity: (acc > 0 || rej > 0) ? rej : 0,
+        remarks: it.remarks || ''
+      };
+    });
+    setInspectionItems(items);
+    setIsInspectOpen(true);
+  };
+
+  const handleAcceptAll = () => {
+    setInspectionItems(prev => prev.map(item => ({
+      ...item,
+      accepted_quantity: item.received_quantity,
+      rejected_quantity: 0,
+      remarks: item.remarks || 'Accepted - In good condition'
+    })));
+  };
+
+  const handleInspectQtyChange = (index: number, field: 'accepted_quantity' | 'rejected_quantity', val: number) => {
+    const updated = [...inspectionItems];
+    const item = { ...updated[index] };
+    const max = item.received_quantity;
+    const cleanVal = Math.max(0, Math.min(max, val));
+
+    if (field === 'accepted_quantity') {
+      item.accepted_quantity = cleanVal;
+      item.rejected_quantity = max - cleanVal;
+    } else {
+      item.rejected_quantity = cleanVal;
+      item.accepted_quantity = max - cleanVal;
+    }
+    updated[index] = item;
+    setInspectionItems(updated);
+  };
+
+  const handleSubmitInspection = async () => {
+    try {
+      for (const it of inspectionItems) {
+        if (it.accepted_quantity + it.rejected_quantity !== it.received_quantity) {
+          toast({
+            title: 'Validation Error',
+            description: `Accepted + Rejected must equal Received (${it.received_quantity}) for ${it.item_name}.`,
+            variant: 'destructive'
+          });
+          return;
+        }
+        if (it.rejected_quantity > 0 && !it.remarks?.trim()) {
+          toast({
+            title: 'Remarks Required',
+            description: `Please enter remarks / rejection reason for ${it.item_name}.`,
+            variant: 'destructive'
+          });
+          return;
+        }
+      }
+
+      setSubmittingInspect(true);
+      await inventoryAPI.inspectGRN(grnId, { 
+        items: inspectionItems.map(it => ({
+          item_id: it.item_id || it.itemId || '',
+          item_name: it.item_name || it.itemName || '',
+          accepted_qty: it.accepted_quantity,
+          accepted_quantity: it.accepted_quantity,
+          acceptedQty: it.accepted_quantity,
+          rejected_qty: it.rejected_quantity,
+          rejected_quantity: it.rejected_quantity,
+          rejectedQty: it.rejected_quantity,
+          remarks: it.remarks || ''
+        }))
+      });
+      toast({ title: 'QC Completed', description: 'Quality inspection submitted successfully.' });
+      setIsInspectOpen(false);
+      await fetchDetails(true);
+    } catch (err: any) {
+      toast({ title: 'Inspection Failed', description: err.message || 'Failed to submit inspection', variant: 'destructive' });
+    } finally {
+      setSubmittingInspect(false);
+    }
+  };
+
+  const handleProcessConfirm = async () => {
+    try {
+      setSubmittingProcess(true);
+      await inventoryAPI.processGRNAction(grnId, { inventory_decision: inventoryDecision });
+      toast({ title: 'GRN Processed', description: 'Stock has been updated successfully.' });
+      setIsProcessOpen(false);
+      await fetchDetails(true);
+    } catch (err: any) {
+      toast({ title: 'Processing Failed', description: err.message || 'Failed to process GRN', variant: 'destructive' });
+    } finally {
+      setSubmittingProcess(false);
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    try {
+      setSubmittingEdit(true);
+      await inventoryAPI.updateGRN(grnId, {
+        invoice_number: editInvoiceNumber,
+        invoice_date: editInvoiceDate || null,
+        remarks: editRemarks
+      });
+      toast({ title: 'Updated Successfully', description: 'GRN metadata has been updated.' });
+      setIsEditOpen(false);
+      await fetchDetails(true);
+    } catch (err: any) {
+      toast({ title: 'Update Failed', description: err.message || 'Failed to update GRN details', variant: 'destructive' });
+    } finally {
+      setSubmittingEdit(false);
+    }
+  };
 
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        <p className="text-muted-foreground text-sm animate-pulse font-medium">Fetching GRN details...</p>
+        <p className="text-muted-foreground text-sm animate-pulse font-medium">Fetching real-time GRN details...</p>
       </div>
     );
   }
@@ -943,16 +1103,28 @@ function GRNDetailsView({ grnId, onBack }: GRNDetailsProps) {
       style: 'currency',
       currency: 'INR',
       maximumFractionDigits: 2
-    }).format(val);
+    }).format(val || 0);
   };
 
   const getStatusColor = (status: string) => {
     const s = status?.toLowerCase() || '';
     if (s.includes('accept') || s.includes('received')) return 'bg-emerald-500 hover:bg-emerald-600 text-white';
     if (s.includes('reject')) return 'bg-destructive text-destructive-foreground';
-    if (s.includes('partial')) return 'bg-amber-500 hover:bg-amber-600 text-white';
+    if (s.includes('qc completed') || s.includes('qc_completed')) return 'bg-blue-600 hover:bg-blue-700 text-white';
+    if (s.includes('partial') || s.includes('pending')) return 'bg-amber-500 hover:bg-amber-600 text-white';
     return 'bg-secondary text-secondary-foreground';
   };
+
+  const rawStatus = (grnData.raw_status || grnData.status || '').toLowerCase();
+  const isPendingQC = rawStatus === 'pending' || rawStatus === 'pending_qc' || rawStatus === 'qc_pending' || rawStatus === 'draft';
+  const isQCCompleted = rawStatus === 'qc_completed';
+
+  const totalReceivedVal = grnData.total_received_value ?? (grnData.items || []).reduce((acc: number, it: any) => acc + ((it.received_quantity || 0) * (it.unit_price || 0)), 0);
+  const totalAcceptedVal = grnData.total_accepted_value ?? (grnData.items || []).reduce((acc: number, it: any) => acc + ((it.accepted_quantity || 0) * (it.unit_price || 0)), 0);
+  const totalOrderedQty = (grnData.items || []).reduce((acc: number, it: any) => acc + (it.ordered_quantity || 0), 0);
+  const totalReceivedQty = (grnData.items || []).reduce((acc: number, it: any) => acc + (it.received_quantity || 0), 0);
+  const totalAcceptedQty = (grnData.items || []).reduce((acc: number, it: any) => acc + (it.accepted_quantity || 0), 0);
+  const totalRejectedQty = (grnData.items || []).reduce((acc: number, it: any) => acc + (it.rejected_quantity || 0), 0);
 
   return (
     <div className="space-y-6">
@@ -965,25 +1137,106 @@ function GRNDetailsView({ grnId, onBack }: GRNDetailsProps) {
             </Button>
             <span className="text-sm text-muted-foreground font-mono">/ Inventory / GRN / Details</span>
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2 pt-2">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground flex items-center gap-2 pt-2">
             GRN Details: <span className="font-mono text-primary">{grnData.grn_number}</span>
           </h1>
         </div>
-        <div className="flex items-center gap-2 self-start sm:self-center">
+        <div className="flex flex-wrap items-center gap-2 self-start sm:self-center">
           <Badge className={`${getStatusColor(grnData.status)} text-xs px-3 py-1 font-semibold shadow-sm`}>
             {grnData.status}
           </Badge>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => fetchDetails(true)} 
+            disabled={refreshing} 
+            className="h-8 gap-1.5"
+            title="Refresh real-time data"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">Refresh</span>
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setIsEditOpen(true)}
+            className="h-8 gap-1.5"
+          >
+            <Edit3 className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Configure</span>
+          </Button>
+          {isPendingQC && (
+            <Button 
+              size="sm" 
+              onClick={handleOpenInspect} 
+              className="h-8 gap-1.5 bg-primary hover:bg-primary/90 font-medium"
+            >
+              <ClipboardCheck className="h-4 w-4" />
+              Perform QC
+            </Button>
+          )}
+          {isQCCompleted && (
+            <Button 
+              size="sm" 
+              onClick={() => setIsProcessOpen(true)} 
+              className="h-8 gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-sm"
+            >
+              <CheckCircle2 className="h-4 w-4" />
+              Process GRN
+            </Button>
+          )}
         </div>
+      </div>
+
+      {/* Dynamic Metric Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="shadow-sm border-muted">
+          <CardContent className="p-4">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Received Total Value</p>
+            <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">{formatCurrency(totalReceivedVal)}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{totalReceivedQty} total items received</p>
+          </CardContent>
+        </Card>
+        <Card className="shadow-sm border-muted">
+          <CardContent className="p-4">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Accepted Value</p>
+            <p className="text-xl sm:text-2xl font-bold text-emerald-600 mt-1">{formatCurrency(totalAcceptedVal)}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{totalAcceptedQty} items accepted into stock</p>
+          </CardContent>
+        </Card>
+        <Card className="shadow-sm border-muted">
+          <CardContent className="p-4">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Ordered Qty</p>
+            <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">{totalOrderedQty}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">PO: {grnData.po_reference}</p>
+          </CardContent>
+        </Card>
+        <Card className="shadow-sm border-muted">
+          <CardContent className="p-4">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">QC Status</p>
+            <div className="mt-1">
+              <Badge className={`${getStatusColor(grnData.status)} text-xs px-2.5 py-0.5 font-semibold`}>
+                {grnData.status}
+              </Badge>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1 truncate">
+              {grnData.inspected_by ? `By: ${grnData.inspected_by}` : 'Awaiting inspection'}
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Grid of info cards */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Basic Info */}
         <Card className="lg:col-span-2 shadow-sm border-muted">
-          <CardHeader className="pb-3 border-b bg-muted/20">
+          <CardHeader className="pb-3 border-b bg-muted/20 flex flex-row items-center justify-between">
             <CardTitle className="text-base font-bold flex items-center gap-2">
               <FileText className="h-4 w-4 text-primary" /> Basic Information
             </CardTitle>
+            <Button variant="ghost" size="sm" onClick={() => setIsEditOpen(true)} className="h-7 text-xs gap-1">
+              <Edit3 className="h-3 w-3" /> Edit
+            </Button>
           </CardHeader>
           <CardContent className="pt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
             <div>
@@ -1017,10 +1270,8 @@ function GRNDetailsView({ grnId, onBack }: GRNDetailsProps) {
               </p>
             </div>
             <div>
-              <p className="text-muted-foreground text-xs font-semibold uppercase">Last Updated Date</p>
-              <p className="font-medium text-foreground text-sm">
-                {grnData.last_updated_date ? new Date(grnData.last_updated_date).toLocaleString() : '-'}
-              </p>
+              <p className="text-muted-foreground text-xs font-semibold uppercase">Remarks</p>
+              <p className="font-medium text-foreground text-sm">{grnData.remarks || '-'}</p>
             </div>
           </CardContent>
         </Card>
@@ -1032,10 +1283,10 @@ function GRNDetailsView({ grnId, onBack }: GRNDetailsProps) {
               <ClipboardCheck className="h-4 w-4 text-primary" /> Purchase Order Info
             </CardTitle>
           </CardHeader>
-          <CardContent className="pt-4 space-y-4 text-sm">
+          <CardContent className="pt-4 space-y-3.5 text-sm">
             <div>
               <p className="text-muted-foreground text-xs font-semibold uppercase">PO Number</p>
-              <p className="font-mono font-medium text-foreground">{grnData.purchase_order?.po_number || 'N/A'}</p>
+              <p className="font-mono font-medium text-foreground">{grnData.purchase_order?.po_number || grnData.po_reference || 'N/A'}</p>
             </div>
             <div>
               <p className="text-muted-foreground text-xs font-semibold uppercase">PO Date</p>
@@ -1059,10 +1310,13 @@ function GRNDetailsView({ grnId, onBack }: GRNDetailsProps) {
 
       {/* Item Details Table */}
       <Card className="shadow-sm border-muted">
-        <CardHeader className="pb-3 border-b bg-muted/20">
+        <CardHeader className="pb-3 border-b bg-muted/20 flex flex-row items-center justify-between">
           <CardTitle className="text-base font-bold flex items-center gap-2">
             <Package className="h-4 w-4 text-primary" /> Item Details
           </CardTitle>
+          <span className="text-xs text-muted-foreground font-medium">
+            Total Value: <span className="font-bold text-foreground">{formatCurrency(totalReceivedVal)}</span>
+          </span>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
@@ -1080,16 +1334,27 @@ function GRNDetailsView({ grnId, onBack }: GRNDetailsProps) {
             <TableBody>
               {grnData.items && grnData.items.length > 0 ? (
                 grnData.items.map((item: any, idx: number) => {
-                  const total = (item.accepted_quantity || 0) * (item.unit_price || 0);
+                  const unitPrice = item.unit_price || 0;
+                  const receivedQty = item.received_quantity || 0;
+                  const acceptedQty = item.accepted_quantity || 0;
+                  const receivedVal = receivedQty * unitPrice;
+                  const acceptedVal = acceptedQty * unitPrice;
+                  const lineTotal = item.total_price ?? (acceptedQty > 0 || isQCCompleted ? acceptedVal : receivedVal);
+
                   return (
                     <TableRow key={idx}>
                       <TableCell className="font-medium pl-6">{item.item_name}</TableCell>
                       <TableCell className="text-right">{item.ordered_quantity}</TableCell>
-                      <TableCell className="text-right">{item.received_quantity}</TableCell>
+                      <TableCell className="text-right font-medium">{item.received_quantity}</TableCell>
                       <TableCell className="text-right font-semibold text-emerald-600">{item.accepted_quantity}</TableCell>
                       <TableCell className="text-right font-semibold text-destructive">{item.rejected_quantity}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(item.unit_price)}</TableCell>
-                      <TableCell className="text-right font-bold pr-6">{formatCurrency(total)}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(unitPrice)}</TableCell>
+                      <TableCell className="text-right font-bold pr-6">
+                        <div>{formatCurrency(lineTotal)}</div>
+                        {acceptedQty > 0 && acceptedQty !== receivedQty && (
+                          <div className="text-[11px] font-normal text-muted-foreground">Received: {formatCurrency(receivedVal)}</div>
+                        )}
+                      </TableCell>
                     </TableRow>
                   );
                 })
@@ -1101,16 +1366,50 @@ function GRNDetailsView({ grnId, onBack }: GRNDetailsProps) {
                 </TableRow>
               )}
             </TableBody>
+            {grnData.items && grnData.items.length > 0 && (
+              <TableFooter className="bg-muted/30 font-semibold border-t">
+                <TableRow>
+                  <TableCell className="pl-6">Totals</TableCell>
+                  <TableCell className="text-right">{totalOrderedQty}</TableCell>
+                  <TableCell className="text-right font-medium">{totalReceivedQty}</TableCell>
+                  <TableCell className="text-right text-emerald-600">{totalAcceptedQty}</TableCell>
+                  <TableCell className="text-right text-destructive">{totalRejectedQty}</TableCell>
+                  <TableCell className="text-right">-</TableCell>
+                  <TableCell className="text-right font-bold pr-6">
+                    {formatCurrency(totalAcceptedVal > 0 ? totalAcceptedVal : totalReceivedVal)}
+                  </TableCell>
+                </TableRow>
+              </TableFooter>
+            )}
           </Table>
         </CardContent>
       </Card>
 
       {/* Quality Inspection Section */}
       <Card className="shadow-sm border-muted">
-        <CardHeader className="pb-3 border-b bg-muted/20">
-          <CardTitle className="text-base font-bold flex items-center gap-2">
-            <ClipboardCheck className="h-4 w-4 text-primary" /> Quality Inspection
-          </CardTitle>
+        <CardHeader className="pb-3 border-b bg-muted/20 flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="text-base font-bold flex items-center gap-2">
+              <ClipboardCheck className="h-4 w-4 text-primary" /> Quality Inspection
+            </CardTitle>
+            {grnData.inspected_by && (
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Inspected by <span className="font-semibold text-foreground">{grnData.inspected_by}</span>
+                {grnData.inspected_at ? ` on ${new Date(grnData.inspected_at).toLocaleString()}` : ''}
+              </p>
+            )}
+          </div>
+          {isPendingQC ? (
+            <Button size="sm" onClick={handleOpenInspect} className="h-8 gap-1.5 bg-primary hover:bg-primary/90">
+              <ClipboardCheck className="h-4 w-4" /> Perform Inspection
+            </Button>
+          ) : isQCCompleted ? (
+            <Button size="sm" onClick={() => setIsProcessOpen(true)} className="h-8 gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white">
+              <CheckCircle2 className="h-4 w-4" /> Process GRN
+            </Button>
+          ) : (
+            <Badge variant="outline" className="text-xs">Inspection Finalized</Badge>
+          )}
         </CardHeader>
         <CardContent className="p-0">
           <Table>
@@ -1131,7 +1430,8 @@ function GRNDetailsView({ grnId, onBack }: GRNDetailsProps) {
                     <TableCell>
                       <Badge variant={
                         item.inspection_status === 'Accepted' ? 'default' :
-                        item.inspection_status === 'Rejected' ? 'destructive' : 'secondary'
+                        item.inspection_status === 'Rejected' ? 'destructive' :
+                        item.inspection_status === 'Partially Accepted' ? 'outline' : 'secondary'
                       }>
                         {item.inspection_status || 'Pending'}
                       </Badge>
@@ -1188,6 +1488,205 @@ function GRNDetailsView({ grnId, onBack }: GRNDetailsProps) {
           )}
         </CardContent>
       </Card>
+
+      {/* Perform Quality Inspection Dialog */}
+      <Dialog open={isInspectOpen} onOpenChange={setIsInspectOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <div className="flex items-center justify-between pr-4">
+              <DialogTitle className="text-xl flex items-center gap-2">
+                <ClipboardCheck className="h-5 w-5 text-primary" /> Quality Inspection
+              </DialogTitle>
+              <Button size="sm" variant="outline" onClick={handleAcceptAll} className="h-7 text-xs border-emerald-500 text-emerald-600 hover:bg-emerald-50">
+                Accept All
+              </Button>
+            </div>
+            <DialogDescription>
+              Verify received items, record accepted/rejected quantities and document any defects.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 my-2">
+            {inspectionItems.map((item, index) => (
+              <div key={index} className="p-3.5 border rounded-lg bg-card space-y-3">
+                <div className="flex justify-between items-center">
+                  <h4 className="font-semibold text-sm">{item.item_name}</h4>
+                  <Badge variant="outline" className="text-xs">Received: {item.received_quantity}</Badge>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Accepted Qty</Label>
+                    <Input 
+                      type="number" 
+                      min="0" 
+                      max={item.received_quantity}
+                      value={item.accepted_quantity}
+                      onChange={(e) => handleInspectQtyChange(index, 'accepted_quantity', parseInt(e.target.value, 10) || 0)}
+                      className="mt-1 h-8"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Rejected Qty</Label>
+                    <Input 
+                      type="number" 
+                      min="0" 
+                      max={item.received_quantity}
+                      value={item.rejected_quantity}
+                      onChange={(e) => handleInspectQtyChange(index, 'rejected_quantity', parseInt(e.target.value, 10) || 0)}
+                      className="mt-1 h-8"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-xs text-muted-foreground">
+                    Remarks / Rejection Reason {item.rejected_quantity > 0 && <span className="text-destructive">*</span>}
+                  </Label>
+                  <Input 
+                    value={item.remarks}
+                    placeholder={item.rejected_quantity > 0 ? "Reason for rejection (mandatory)" : "Optional inspection notes"}
+                    onChange={(e) => {
+                      const updated = [...inspectionItems];
+                      updated[index].remarks = e.target.value;
+                      setInspectionItems(updated);
+                    }}
+                    className="mt-1 h-8 text-xs"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setIsInspectOpen(false)} disabled={submittingInspect}>
+              Cancel
+            </Button>
+            <Button onClick={handleSubmitInspection} disabled={submittingInspect}>
+              {submittingInspect ? 'Submitting...' : 'Complete Inspection'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Process GRN Dialog (After QC Completed) */}
+      <Dialog open={isProcessOpen} onOpenChange={setIsProcessOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-emerald-600" /> Process GRN into Stock
+            </DialogTitle>
+            <DialogDescription>
+              Select inventory destination for accepted items. Accepted stock will be added to the ledger.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 my-2">
+            <div className="space-y-2 p-3 bg-muted/40 rounded-md border">
+              <Label className="text-sm font-semibold">Inventory Destination</Label>
+              <div className="flex gap-4 mt-2">
+                <label className="flex items-center gap-2 cursor-pointer text-sm font-medium">
+                  <input 
+                    type="radio" 
+                    name="modalInvDecision" 
+                    value="surplus" 
+                    checked={inventoryDecision === 'surplus'} 
+                    onChange={(e) => setInventoryDecision(e.target.value as any)} 
+                  />
+                  Add to Surplus Stock
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer text-sm font-medium">
+                  <input 
+                    type="radio" 
+                    name="modalInvDecision" 
+                    value="site" 
+                    checked={inventoryDecision === 'site'} 
+                    onChange={(e) => setInventoryDecision(e.target.value as any)} 
+                  />
+                  Direct Issue to Site
+                </label>
+              </div>
+            </div>
+
+            <div className="p-3 border rounded-md bg-card text-xs space-y-1.5">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Accepted Items:</span>
+                <span className="font-semibold text-emerald-600">{totalAcceptedQty} units</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Total Accepted Value:</span>
+                <span className="font-semibold">{formatCurrency(totalAcceptedVal)}</span>
+              </div>
+              {totalRejectedQty > 0 && (
+                <div className="flex justify-between text-destructive">
+                  <span>Rejected Units (RTV):</span>
+                  <span className="font-semibold">{totalRejectedQty} units</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setIsProcessOpen(false)} disabled={submittingProcess}>
+              Cancel
+            </Button>
+            <Button onClick={handleProcessConfirm} disabled={submittingProcess} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+              {submittingProcess ? 'Processing...' : 'Confirm Processing'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dynamic Configure / Edit Metadata Dialog */}
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit3 className="h-5 w-5 text-primary" /> Configure GRN Details
+            </DialogTitle>
+            <DialogDescription>
+              Update invoice reference, invoice date or inspection remarks dynamically.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 my-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Invoice Number</Label>
+              <Input 
+                value={editInvoiceNumber} 
+                onChange={(e) => setEditInvoiceNumber(e.target.value)} 
+                placeholder="e.g. INV-2026-001" 
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Invoice Date</Label>
+              <Input 
+                type="date" 
+                value={editInvoiceDate} 
+                onChange={(e) => setEditInvoiceDate(e.target.value)} 
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Remarks / Notes</Label>
+              <Textarea 
+                value={editRemarks} 
+                onChange={(e) => setEditRemarks(e.target.value)} 
+                rows={3} 
+                placeholder="Enter any additional delivery notes or remarks..." 
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setIsEditOpen(false)} disabled={submittingEdit}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveEdit} disabled={submittingEdit}>
+              {submittingEdit ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

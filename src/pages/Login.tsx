@@ -6,7 +6,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
-import { Lock, Mail, Eye, Building2 } from 'lucide-react';
+import { Lock, Mail, Eye, Building2, KeyRound, ArrowLeft, CheckCircle2 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
 
 
@@ -23,6 +30,98 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+
+  // Forgot password dialog state
+  const [isForgotOpen, setIsForgotOpen] = useState(false);
+  const [forgotStep, setForgotStep] = useState<1 | 2>(1);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotCode, setForgotCode] = useState('');
+  const [forgotNewPassword, setForgotNewPassword] = useState('');
+  const [forgotConfirmPassword, setForgotConfirmPassword] = useState('');
+  const [forgotResetToken, setForgotResetToken] = useState('');
+  const [forgotDevCode, setForgotDevCode] = useState<string | null>(null);
+  const [isForgotLoading, setIsForgotLoading] = useState(false);
+  const [showForgotPwd, setShowForgotPwd] = useState(false);
+
+  const handleSendResetCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!forgotEmail.trim()) {
+      toast({ title: 'Validation Error', description: 'Please enter your registered email.', variant: 'destructive' });
+      return;
+    }
+
+    setIsForgotLoading(true);
+    try {
+      const res = await authAPI.forgotPassword(forgotEmail.trim());
+      setForgotResetToken(res.reset_token || '');
+      setForgotDevCode(res.dev_code || null);
+      if (res.dev_code) {
+        setForgotCode(res.dev_code);
+      }
+      setForgotStep(2);
+      toast({
+        title: 'Verification Code Sent',
+        description: res.message || 'Please check your email for the 6-digit code.',
+      });
+    } catch (err: any) {
+      toast({
+        title: 'Error',
+        description: err.data?.error || err.message || 'No account found with this email.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsForgotLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!forgotCode.trim()) {
+      toast({ title: 'Validation Error', description: 'Please enter the 6-digit verification code.', variant: 'destructive' });
+      return;
+    }
+    if (forgotNewPassword.length < 6) {
+      toast({ title: 'Validation Error', description: 'Password must be at least 6 characters long.', variant: 'destructive' });
+      return;
+    }
+    if (forgotNewPassword !== forgotConfirmPassword) {
+      toast({ title: 'Validation Error', description: 'Passwords do not match.', variant: 'destructive' });
+      return;
+    }
+
+    setIsForgotLoading(true);
+    try {
+      const res = await authAPI.resetPassword({
+        email: forgotEmail.trim(),
+        code: forgotCode.trim(),
+        reset_token: forgotResetToken,
+        new_password: forgotNewPassword,
+      });
+
+      toast({
+        title: 'Password Reset Successful',
+        description: res.message || 'You can now sign in with your new password.',
+      });
+
+      // Pre-fill email in login form
+      setEmail(forgotEmail.trim());
+      setPassword('');
+      setIsForgotOpen(false);
+      setForgotStep(1);
+      setForgotCode('');
+      setForgotNewPassword('');
+      setForgotConfirmPassword('');
+      setForgotDevCode(null);
+    } catch (err: any) {
+      toast({
+        title: 'Reset Failed',
+        description: err.data?.error || err.message || 'Invalid or expired verification code.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsForgotLoading(false);
+    }
+  };
 
   useEffect(() => {
     // If user is already logged in and does not need a password change, redirect to dashboard
@@ -261,9 +360,21 @@ export default function Login() {
                   <input type="checkbox" className="rounded border-slate-300 text-[#002D62] focus:ring-[#002D62] h-4 w-4" />
                   Remember me
                 </label>
-                <a href="#" className="text-[#004B87] hover:underline transition-colors font-bold">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setForgotEmail(email || '');
+                    setForgotStep(1);
+                    setForgotCode('');
+                    setForgotNewPassword('');
+                    setForgotConfirmPassword('');
+                    setForgotDevCode(null);
+                    setIsForgotOpen(true);
+                  }}
+                  className="text-[#004B87] hover:underline transition-colors font-bold text-[13px] bg-transparent border-none p-0 cursor-pointer"
+                >
                   Forgot password?
-                </a>
+                </button>
               </div>
 
               <Button type="submit" className="w-full h-[48px] font-bold text-[15px] bg-[#002D62] hover:bg-[#001D3D] text-white transition-colors rounded-lg shadow-sm" disabled={isLoading}>
@@ -286,6 +397,161 @@ export default function Login() {
           </Card>
         )}
       </div>
+    
+      {/* Forgot Password Dialog */}
+      <Dialog open={isForgotOpen} onOpenChange={setIsForgotOpen}>
+        <DialogContent className="sm:max-w-[440px] p-6 bg-white rounded-xl shadow-2xl border border-slate-100">
+          <DialogHeader className="space-y-2">
+            <div className="w-12 h-12 rounded-xl bg-blue-50 text-[#003366] flex items-center justify-center mb-1">
+              <KeyRound className="h-6 w-6" />
+            </div>
+            <DialogTitle className="text-xl font-bold text-slate-900">
+              {forgotStep === 1 ? 'Forgot Password' : 'Reset Your Password'}
+            </DialogTitle>
+            <DialogDescription className="text-sm text-slate-500">
+              {forgotStep === 1
+                ? 'Enter your registered email address and we will generate a 6-digit verification code to reset your password.'
+                : `Enter the 6-digit verification code sent to ${forgotEmail} and set your new password.`}
+            </DialogDescription>
+          </DialogHeader>
+
+          {forgotStep === 1 ? (
+            <form onSubmit={handleSendResetCode} className="space-y-4 mt-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="forgot-email" className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  Registered Email
+                </Label>
+                <div className="relative">
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Input
+                    id="forgot-email"
+                    type="email"
+                    placeholder="name@example.com"
+                    value={forgotEmail}
+                    onChange={(e) => setForgotEmail(e.target.value)}
+                    className="pl-10 h-11 bg-slate-50 border-slate-200 focus-visible:ring-[#003366]"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsForgotOpen(false)}
+                  disabled={isForgotLoading}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  className="bg-[#002D62] hover:bg-[#001D3D] text-white"
+                  disabled={isForgotLoading}
+                >
+                  {isForgotLoading ? 'Sending Code...' : 'Send Verification Code'}
+                </Button>
+              </div>
+            </form>
+          ) : (
+            <form onSubmit={handleResetPassword} className="space-y-4 mt-2">
+              {forgotDevCode && (
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-900 flex items-center justify-between">
+                  <span>Verification Code: <strong>{forgotDevCode}</strong></span>
+                  <button
+                    type="button"
+                    onClick={() => setForgotCode(forgotDevCode)}
+                    className="text-[11px] font-bold text-blue-700 underline"
+                  >
+                    Auto-fill
+                  </button>
+                </div>
+              )}
+
+              <div className="space-y-1.5">
+                <Label htmlFor="forgot-code" className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  6-Digit Verification Code
+                </Label>
+                <Input
+                  id="forgot-code"
+                  type="text"
+                  placeholder="e.g. 123456"
+                  maxLength={6}
+                  value={forgotCode}
+                  onChange={(e) => setForgotCode(e.target.value.replace(/\D/g, ''))}
+                  className="h-11 tracking-widest text-center text-lg font-bold bg-slate-50 border-slate-200 focus-visible:ring-[#003366]"
+                  required
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="forgot-new-pwd" className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  New Password
+                </Label>
+                <div className="relative">
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Input
+                    id="forgot-new-pwd"
+                    type={showForgotPwd ? 'text' : 'password'}
+                    placeholder="At least 6 characters"
+                    value={forgotNewPassword}
+                    onChange={(e) => setForgotNewPassword(e.target.value)}
+                    className="pl-10 pr-10 h-11 bg-slate-50 border-slate-200 focus-visible:ring-[#003366]"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotPwd(!showForgotPwd)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="forgot-confirm-pwd" className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  Confirm New Password
+                </Label>
+                <div className="relative">
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Input
+                    id="forgot-confirm-pwd"
+                    type={showForgotPwd ? 'text' : 'password'}
+                    placeholder="Confirm new password"
+                    value={forgotConfirmPassword}
+                    onChange={(e) => setForgotConfirmPassword(e.target.value)}
+                    className="pl-10 h-11 bg-slate-50 border-slate-200 focus-visible:ring-[#003366]"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setForgotStep(1)}
+                  disabled={isForgotLoading}
+                  className="text-xs text-slate-500"
+                >
+                  <ArrowLeft className="h-3.5 w-3.5 mr-1" />
+                  Back
+                </Button>
+                <Button
+                  type="submit"
+                  className="bg-[#002D62] hover:bg-[#001D3D] text-white"
+                  disabled={isForgotLoading}
+                >
+                  {isForgotLoading ? 'Resetting...' : 'Reset Password'}
+                </Button>
+              </div>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }
